@@ -1,5 +1,5 @@
 
-training_repro <- readr::read_csv(file = "./data_output/training_repro.csv")
+training_repro <- readr::read_csv(file = "./data/training_repro.csv")
 col_factor <- c("known_offender", "source_id", "gear", "ais_type", "foc")
 training_repro[col_factor] <- lapply(training_repro[col_factor], factor)
 
