@@ -14,10 +14,12 @@ Joo et al.
     set](https://github.com/GlobalFishingWatch/forced-labor-trustability/tree/main/data/training_repro.csv)
     with anonymized vessels.
 
-We removed confidential and sensitive information from the data set: \*
-Negative cases have been removed, so specificity cannot be computed. \*
-Sensitive variables such as flag and vessel ID were removed, so flag
-barplots and the port analysis in the discussion cannot be replicated.
+We removed confidential and sensitive information from the data set:
+
+-   Negative cases have been removed, so specificity cannot be computed.
+-   Sensitive variables such as flag and vessel ID were removed, so flag
+    barplots and the port analysis in the discussion cannot be
+    replicated.
 
 The complete codes (without data) used for the model and outputs are in
 branch `original`.

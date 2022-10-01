@@ -13,6 +13,7 @@ This repository is a companion to the manuscript "Towards a responsible machine 
 * It also contains a [data set](https://github.com/GlobalFishingWatch/forced-labor-trustability/tree/main/data/training_repro.csv) with anonymized vessels. 
 
 We removed confidential and sensitive information from the data set:
+
 * Negative cases have been removed, so specificity cannot be computed.
 * Sensitive variables such as flag and vessel ID were removed, so flag barplots and the port analysis in the discussion cannot be replicated.
 
