@@ -114,7 +114,7 @@ cv_splits_all <- common_seed_tibble |>
 
 if (!require("forcedlabor")) {
   credentials::set_github_pat()
-  devtools::install_github("GlobalFishingWatch/forcedlabor@repro")
+  devtools::install_github("GlobalFishingWatch/forcedlabor@main")
 }
 
 # tictoc::tic()
@@ -199,7 +199,7 @@ predictions <- classif_res |>
 classif_res <- classif_res |>
   dplyr::left_join(training_repro, by = c("indID", "known_offender")) |>
   dplyr::select(indID, known_offender, pred_class, confidence, gear, flag_region)
-  
+
 
 
 # Predictions by gear
@@ -243,7 +243,7 @@ count_conf <- classif_res |>
 
 predictions |> dplyr::left_join(count_conf, by = "prediction") |>
   dplyr::mutate(prop = n/N)
-  
+
 ## A tibble: 2 × 4
 #  prediction     N     n  prop
 #  <chr>      <int> <int> <dbl>
@@ -338,14 +338,14 @@ classif_res |>
                                      levels = c(1, 0)),
                       estimate = factor(.data$pred_class,
                                         levels = c(1, 0))) |>
-    dplyr::select(gear, .data$.estimate) 
-    
+    dplyr::select(gear, .data$.estimate)
+
 ## A tibble: 4 × 2
 #  gear               .estimate
 #  <fct>                  <dbl>
-#1 drifting_longlines     1    
-#2 purse_seines           1    
-#3 squid_jigger           1    
+#1 drifting_longlines     1
+#2 purse_seines           1
+#3 squid_jigger           1
 #4 trawlers               0.636
 
 
@@ -357,14 +357,14 @@ classif_res |>
                                      levels = c(1, 0)),
                       estimate = factor(.data$pred_class,
                                         levels = c(1, 0))) |>
-    dplyr::select(flag_region, .data$.estimate) 
- 
+    dplyr::select(flag_region, .data$.estimate)
+
 # # A tibble: 2 × 2
 #  flag_region .estimate
 #  <chr>           <dbl>
 #1 Asia            0.949
 #2 Other           0.923
- 
+
 # by gear and flag_region
 
 classif_res |>
@@ -373,19 +373,19 @@ classif_res |>
                                      levels = c(1, 0)),
                       estimate = factor(.data$pred_class,
                                         levels = c(1, 0))) |>
-    dplyr::select(gear, flag_region, .data$.estimate) 
+    dplyr::select(gear, flag_region, .data$.estimate)
 
 ## A tibble: 8 × 3
 #  gear               flag_region .estimate
 #  <fct>              <chr>           <dbl>
-#1 drifting_longlines Asia            1    
-#2 drifting_longlines Other           1    
-#3 purse_seines       Asia            1    
-#4 purse_seines       Other           1    
-#5 squid_jigger       Asia            1    
-#6 squid_jigger       Other          NA    
+#1 drifting_longlines Asia            1
+#2 drifting_longlines Other           1
+#3 purse_seines       Asia            1
+#4 purse_seines       Other           1
+#5 squid_jigger       Asia            1
+#6 squid_jigger       Other          NA
 #7 trawlers           Asia            0.667
-#8 trawlers           Other           0.5  
+#8 trawlers           Other           0.5
 
 
 
