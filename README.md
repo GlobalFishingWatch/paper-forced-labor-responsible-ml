@@ -5,21 +5,28 @@ This repository is a companion to the manuscript “Towards a responsible
 machine learning approach to identify forced labor at sea”, from Rocío
 Joo et al.
 
-## `main` branch
+## `original` branch
 
 -   It contains the
     [codes](https://github.com/GlobalFishingWatch/forced-labor-trustability/tree/main/scripts/model_repro_training_data.R)
-    to reproduce the analyses of the paper.
--   It also contains a [data
-    set](https://github.com/GlobalFishingWatch/forced-labor-trustability/tree/main/data/training_repro.csv)
-    with anonymized vessels.
+    to do the analyses of the paper.
 
-We removed confidential and sensitive information from the data set:
+-   There is no data available in this branch, so the codes cannot be
+    run by external users.
 
--   Negative cases have been removed, so specificity cannot be computed.
--   Sensitive variables such as flag and vessel ID were removed, so flag
-    barplots and the port analysis in the discussion cannot be
-    replicated.
+-   The first step here is to [run
+    queries](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/queries_premodel.r)
+    to match tables of vessel information and compute movement patterns.
 
-The complete codes (without data) used for the model and outputs are in
-branch `original`.
+-   Then we
+    [process](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/queries_premodel.r)
+    the data to be in the right format for the model.
+
+-   We
+    [run](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/model_run_non_repro.r)
+    the model, do predictions, compute performance and fairness
+
+-   Need to add ports and other calculations
+
+The reproducible codes (with data) used for the model and outputs are in
+branch `main`.
