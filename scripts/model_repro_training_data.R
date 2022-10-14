@@ -8,8 +8,8 @@ training_repro[col_factor] <- lapply(training_repro[col_factor], factor)
 
 training_repro |>
   dplyr::mutate(case_type =
-                dplyr::case_when(known_offender == 1 ~ "Positive",
-                                 known_offender == 0 ~ "Unlabeled")) |>
+                  dplyr::case_when(known_offender == 1 ~ "Positive",
+                                   known_offender == 0 ~ "Unlabeled")) |>
   dplyr::group_by(case_type) |>
   dplyr::summarise(n = dplyr::n())
 
@@ -122,6 +122,9 @@ if (!require("forcedlabor")) {
 # library(forcedlabor)
 
 ### FIRST TRAINING STAGE ###
+## This stage builds models using each seed, CV analysis split, and hyperparameter combination
+## and generates predictions for CV assessment split, which can later be evaluated against the observed classes
+## Each model uses the data pre-processing recipe and model as specified above
 
 tictoc::tic()
 train_pred_proba <- forcedlabor::ml_training(training_df = training_repro,
@@ -138,6 +141,8 @@ tictoc::toc()
 
 
 ###### finding the optimal threshold and hyperparameters #########
+## This stage selects the best hyperparameter combination from train_pred_proba
+## by maximizing mean ROC AUC, averaged across folds, as the metric
 
 tictoc::tic()
 best_hyperparameters <- forcedlabor::ml_hyperpar(train_pred_proba)
@@ -148,44 +153,51 @@ tictoc::toc()
 
 
 ####### Frankenstraining ########################################
+## Using the best hyperparameters, generate predictions for each random seed, CV split, and bag
 
 tictoc::tic()
 cv_model_res <- forcedlabor::ml_frankenstraining(training_df = training_df,
-                                    fl_rec = fl_rec,
-                                    rf_spec = rf_spec,
-                                    cv_splits_all = cv_splits_all,
-                                    bag_runs = bag_runs,
-                                    down_sample_ratio = down_sample_ratio,
-                                    parallel_plan = parallel_plan,
-                                    free_cores = free_cores,
-                                    best_hyperparameters = best_hyperparameters,
-                                    prediction_df = NULL)
+                                                 fl_rec = fl_rec,
+                                                 rf_spec = rf_spec,
+                                                 cv_splits_all = cv_splits_all,
+                                                 bag_runs = bag_runs,
+                                                 down_sample_ratio = down_sample_ratio,
+                                                 parallel_plan = parallel_plan,
+                                                 free_cores = free_cores,
+                                                 best_hyperparameters = best_hyperparameters,
+                                                 prediction_df = NULL)
 tictoc::toc()
 
 
 ####### Classification with dedpul ########################################
-# alpha value will be printed
+## Using the predictions for each random seed, CV split, and bag,
+## use the dedpul algorithm to determine a cutoff for predicting positive or negative
+## then use that cutoff to classify each observation
+## This also generates a confidence value for each observation
+## alpha value will be printed
+
 
 tictoc::tic()
 classif_res <- forcedlabor::ml_classification(data = cv_model_res, common_seed_tibble,
-                                 steps = 1000, plotting = FALSE,
-                                 filepath = NULL,
-                                 threshold = seq(0, .99, by = 0.01), eps = 0.01)
+                                              steps = 1000, plotting = FALSE,
+                                              filepath = NULL,
+                                              threshold = seq(0, .99, by = 0.01), eps = 0.01)
 tictoc::toc()
 
 
 ########### Recall #################################################
+## Calculate recall using the predictions
 recall_res <-  forcedlabor::ml_recall(data = classif_res)
 
 
 
 ########### Predictions ############################
-
+## Summarize the predictions
 
 predictions <- classif_res |>
   dplyr::mutate(prediction =
-                dplyr::case_when(pred_class == 1 ~ "Positive",
-                                 pred_class == 0 ~ "Negative")) |>
+                  dplyr::case_when(pred_class == 1 ~ "Positive",
+                                   pred_class == 0 ~ "Negative")) |>
   dplyr::group_by(prediction) |>
   dplyr::summarise(N = dplyr::n())
 
@@ -206,42 +218,47 @@ classif_res <- classif_res |>
 
 predictions_gear <- classif_res |>
   dplyr::mutate(prediction =
-                dplyr::case_when(pred_class == 1 ~ "Positive",
-                                 pred_class == 0 ~ "Negative")) |>
+                  dplyr::case_when(pred_class == 1 ~ "Positive",
+                                   pred_class == 0 ~ "Negative")) |>
   dplyr::group_by(prediction, gear) |>
-  dplyr::summarise(N = dplyr::n())
+  dplyr::summarise(N = dplyr::n()) |>
+  ungroup()
 
 # Predictions by region
 
 predictions_region <- classif_res |>
   dplyr::mutate(prediction =
-                dplyr::case_when(pred_class == 1 ~ "Positive",
-                                 pred_class == 0 ~ "Negative")) |>
+                  dplyr::case_when(pred_class == 1 ~ "Positive",
+                                   pred_class == 0 ~ "Negative")) |>
   dplyr::group_by(prediction, flag_region) |>
-  dplyr::summarise(N = dplyr::n())
+  dplyr::summarise(N = dplyr::n()) |>
+  ungroup()
 
 # Predictions by gear-region
 
 predictions_gear_region <- classif_res |>
   dplyr::mutate(prediction =
-                dplyr::case_when(pred_class == 1 ~ "Positive",
-                                 pred_class == 0 ~ "Negative")) |>
+                  dplyr::case_when(pred_class == 1 ~ "Positive",
+                                   pred_class == 0 ~ "Negative")) |>
   dplyr::group_by(prediction, gear, flag_region) |>
-  dplyr::summarise(N = dplyr::n())
+  dplyr::summarise(N = dplyr::n()) |>
+  ungroup()
 
 
 ########### Confidence levels ##########################
 
-
+## Summarize prediction classes where we have at least 80% confidence
 count_conf <- classif_res |>
-	dplyr::mutate(prediction =
-                dplyr::case_when(pred_class == 1 ~ "Positive",
-                                 pred_class == 0 ~ "Negative")) |>
-	dplyr::group_by(.data$prediction) |>
-	dplyr::filter(confidence > 0.8) |>
-	dplyr::summarise(n = dplyr::n())
+  dplyr::mutate(prediction =
+                  dplyr::case_when(pred_class == 1 ~ "Positive",
+                                   pred_class == 0 ~ "Negative")) |>
+  dplyr::group_by(.data$prediction) |>
+  dplyr::filter(confidence > 0.8) |>
+  dplyr::summarise(n = dplyr::n()) |>
+  ungroup()
 
-predictions |> dplyr::left_join(count_conf, by = "prediction") |>
+predictions |>
+  dplyr::left_join(count_conf, by = "prediction") |>
   dplyr::mutate(prop = n/N)
 
 ## A tibble: 2 × 4
@@ -251,16 +268,17 @@ predictions |> dplyr::left_join(count_conf, by = "prediction") |>
 #2 Positive   34146 25300 0.741
 
 
-
+## Summarize prediction classes, by gear, where we have at least 80% confidence
 classif_res |>
-	dplyr::mutate(prediction =
-                dplyr::case_when(pred_class == 1 ~ "Positive",
-                                 pred_class == 0 ~ "Negative")) |>
-	dplyr::group_by(.data$prediction, .data$gear) |>
-	dplyr::filter(confidence > 0.8) |>
-	dplyr::summarise(n = dplyr::n()) |>
-	dplyr::left_join(predictions_gear, by = c("prediction", "gear")) |>
-	dplyr::mutate(prop = n/N)
+  dplyr::mutate(prediction =
+                  dplyr::case_when(pred_class == 1 ~ "Positive",
+                                   pred_class == 0 ~ "Negative")) |>
+  dplyr::group_by(.data$prediction, .data$gear) |>
+  dplyr::filter(confidence > 0.8) |>
+  dplyr::summarise(n = dplyr::n()) |>
+  ungroup() |>
+  dplyr::left_join(predictions_gear, by = c("prediction", "gear")) |>
+  dplyr::mutate(prop = n/N)
 
 ## A tibble: 8 × 5
 ## Groups:   prediction [2]
@@ -276,15 +294,17 @@ classif_res |>
 #8 Positive   trawlers            2904  7190 0.404
 
 
+## Summarize prediction classes, by region, where we have at least 80% confidence
 classif_res |>
-	dplyr::mutate(prediction =
-                dplyr::case_when(pred_class == 1 ~ "Positive",
-                                 pred_class == 0 ~ "Negative")) |>
-	dplyr::group_by(.data$prediction, .data$flag_region) |>
-	dplyr::filter(confidence > 0.8) |>
-	dplyr::summarise(n = dplyr::n()) |>
-	dplyr::left_join(predictions_region, by = c("prediction", "flag_region")) |>
-	dplyr::mutate(prop = n/N)
+  dplyr::mutate(prediction =
+                  dplyr::case_when(pred_class == 1 ~ "Positive",
+                                   pred_class == 0 ~ "Negative")) |>
+  dplyr::group_by(.data$prediction, .data$flag_region) |>
+  dplyr::filter(confidence > 0.8) |>
+  dplyr::summarise(n = dplyr::n()) |>
+  ungroup() |>
+  dplyr::left_join(predictions_region, by = c("prediction", "flag_region")) |>
+  dplyr::mutate(prop = n/N)
 
 ## A tibble: 4 × 5
 ## Groups:   prediction [2]
@@ -295,16 +315,17 @@ classif_res |>
 #3 Positive   Asia        17406 21352 0.815
 #4 Positive   Other        7894 12794 0.617
 
-
+## Summarize prediction classes, by gear and region, where we have at least 80% confidence
 classif_res |>
-	dplyr::mutate(prediction =
-                dplyr::case_when(pred_class == 1 ~ "Positive",
-                                 pred_class == 0 ~ "Negative")) |>
-	dplyr::group_by(.data$prediction, .data$gear, .data$flag_region) |>
-	dplyr::filter(confidence > 0.8) |>
-	dplyr::summarise(n = dplyr::n()) |>
-	dplyr::left_join(predictions_gear_region, by = c("prediction", "gear", "flag_region")) |>
-	dplyr::mutate(prop = n/N)
+  dplyr::mutate(prediction =
+                  dplyr::case_when(pred_class == 1 ~ "Positive",
+                                   pred_class == 0 ~ "Negative")) |>
+  dplyr::group_by(.data$prediction, .data$gear, .data$flag_region) |>
+  dplyr::filter(confidence > 0.8) |>
+  dplyr::summarise(n = dplyr::n()) |>
+  ungroup() |>
+  dplyr::left_join(predictions_gear_region, by = c("prediction", "gear", "flag_region")) |>
+  dplyr::mutate(prop = n/N)
 
 ## A tibble: 16 × 6
 ## Groups:   prediction, gear [8]
@@ -335,10 +356,11 @@ classif_res |>
 classif_res |>
   dplyr::group_by(gear) |>
   yardstick::recall(truth = factor(.data$known_offender,
-                                     levels = c(1, 0)),
-                      estimate = factor(.data$pred_class,
-                                        levels = c(1, 0))) |>
-    dplyr::select(gear, .data$.estimate)
+                                   levels = c(1, 0)),
+                    estimate = factor(.data$pred_class,
+                                      levels = c(1, 0)))  |>
+  ungroup() |>
+  dplyr::select(gear, .data$.estimate)
 
 ## A tibble: 4 × 2
 #  gear               .estimate
@@ -354,10 +376,11 @@ classif_res |>
 classif_res |>
   dplyr::group_by(flag_region) |>
   yardstick::recall(truth = factor(.data$known_offender,
-                                     levels = c(1, 0)),
-                      estimate = factor(.data$pred_class,
-                                        levels = c(1, 0))) |>
-    dplyr::select(flag_region, .data$.estimate)
+                                   levels = c(1, 0)),
+                    estimate = factor(.data$pred_class,
+                                      levels = c(1, 0))) |>
+  ungroup()  |>
+  dplyr::select(flag_region, .data$.estimate)
 
 # # A tibble: 2 × 2
 #  flag_region .estimate
@@ -370,10 +393,11 @@ classif_res |>
 classif_res |>
   dplyr::group_by(gear, flag_region) |>
   yardstick::recall(truth = factor(.data$known_offender,
-                                     levels = c(1, 0)),
-                      estimate = factor(.data$pred_class,
-                                        levels = c(1, 0))) |>
-    dplyr::select(gear, flag_region, .data$.estimate)
+                                   levels = c(1, 0)),
+                    estimate = factor(.data$pred_class,
+                                      levels = c(1, 0))) |>
+  ungroup() |>
+  dplyr::select(gear, flag_region, .data$.estimate)
 
 ## A tibble: 8 × 3
 #  gear               flag_region .estimate
