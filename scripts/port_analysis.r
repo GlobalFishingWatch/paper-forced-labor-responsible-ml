@@ -129,6 +129,8 @@ anchorage_summary_with_predictions <- read_csv(here::here("data","anchorage_summ
                                 class_mode == 0 ~ "Negative",
                                 class_mode == "All visits" ~ "All visits"))
 
+anchorage_summary_with_predictions
+
 # What fraction of anchorages were visited by positive vessels?
 anchorage_summary_with_predictions %>%
   filter(class_mode == "Positive") %>%
@@ -164,6 +166,34 @@ port_visit_summary <- voyage_summary_with_predictions %>%
   mutate(iso3 = countrycode(country,
                             origin = "iso3c",
                             destination = "iso3c"))
+
+# Summarize number of positive country-to-country voyages
+country_summary <- voyage_summary_with_predictions %>%
+  group_by(from_country,to_country,class_mode) %>%
+  summarize(number_voyages = sum(number_voyages,na.rm=TRUE)) %>%
+  ungroup() %>%
+  dplyr::select(from = from_country,
+                to = to_country,
+                value = number_voyages,
+                class_mode) %>%
+  filter(!is.na(from),
+         !is.na(to)) %>%
+  filter(class_mode == "Positive")
+
+# How many voyages happened within a single country?
+positive_voyages_within_country <- country_summary %>%
+  filter(from == to) %>%
+  summarize(value = sum(value,na.rm=TRUE)) %>%
+  .$value
+
+# How many voyages happened in total?
+total_positive_voyages_within_country<- country_summary %>%
+  summarize(value = sum(value,na.rm=TRUE)) %>%
+  .$value
+
+# What fraction of positive voyages occurred within a single country?
+positive_voyages_within_country / total_positive_voyages_within_country
+
 
 # Set mapping projection
 map_projection <- "+proj=eqearth +datum=WGS84 +wktext"
