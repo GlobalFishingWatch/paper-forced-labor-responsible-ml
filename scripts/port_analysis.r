@@ -34,54 +34,27 @@ bq_project_query(x = emlab_project, query = all_voyages_by_ssvid_query,
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 
-# Load query to generate voyage summary by from and to country and by forced labor class predictions
+# Load query to generate voyage summary by from and to port/anchorage and by forced labor class predictions
 # We use `world-fishing-827.prj_forced_labor.pred_stats_per_vessel_year_dev_2021` to get class predictions
 # But you may eventually want to changet it to ensure the best prediction table is being used
-voyage_summary_with_predictions_query <- read_file(paste0(query_path,"voyage_summary_with_predictions.sql"))
+voyages_with_predictions_query <- read_file(paste0(query_path,"voyages_with_predictions.sql"))
 
 # Run this query and store on BQ
-bq_project_query(x = emlab_project, query = voyage_summary_with_predictions_query,
+bq_project_query(x = emlab_project, query = voyages_with_predictions_query,
                  destination_table = bq_table(project = gfw_project,
-                                              table = "voyage_summary_with_predictions",
-                                              dataset = "prj_forced_labor"),
-                 use_legacy_sql = FALSE, allowLargeResults = TRUE,
-                 write_disposition = "WRITE_TRUNCATE")
-
-
-# Load query to generate voyage summary by from and to port and by forced labor class predictions
-# We use `world-fishing-827.prj_forced_labor.pred_stats_per_vessel_year_dev_2021` to get class predictions
-# But you may eventually want to changet it to ensure the best prediction table is being used
-voyage_summary_with_predictions_by_port_query <- read_file(paste0(query_path,"voyage_summary_with_predictions_by_port.sql"))
-
-# Run this query and store on BQ
-bq_project_query(x = emlab_project, query = voyage_summary_with_predictions_by_port_query,
-                 destination_table = bq_table(project = gfw_project,
-                                              table = "voyage_summary_with_predictions_by_port",
-                                              dataset = "prj_forced_labor"),
-                 use_legacy_sql = FALSE, allowLargeResults = TRUE,
-                 write_disposition = "WRITE_TRUNCATE")
-
-# Load query to generate anchorage summary by from and to port and by forced labor class predictions
-# We use `world-fishing-827.prj_forced_labor.pred_stats_per_vessel_year_dev_2021` to get class predictions
-# But you may eventually want to changet it to ensure the best prediction table is being used
-anchorages_with_predictions_query <- read_file(paste0(query_path,"anchorages_with_predictions.sql"))
-
-# Run this query and store on BQ
-bq_project_query(x = emlab_project, query = anchorages_with_predictions_query,
-                 destination_table = bq_table(project = gfw_project,
-                                              table = "anchorages_with_predictions",
+                                              table = "voyages_with_predictions",
                                               dataset = "prj_forced_labor"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 
 
 # Cache anchorage data to repo for plotting
-bq_project_query(emlab_project, "SELECT * FROM `world-fishing-827.prj_forced_labor.anchorages_with_predictions`") %>%
+bq_project_query(emlab_project, "SELECT * FROM `world-fishing-827.prj_forced_labor.voyages_with_predictions`") %>%
   bq_table_download(n_max = Inf) %>%
-  write_csv(file=here::here("data","anchorages_with_predictions.csv"))
+  write_csv(file=here::here("data","voyages_with_predictions.csv"))
 
 # Load cached data
-voyage_summary_with_predictions <- read_csv(here::here("data","anchorages_with_predictions.csv")) %>%
+voyage_summary_with_predictions <- read_csv(here::here("data","voyages_with_predictions.csv")) %>%
   # Only want last year of predictions, 2020
   filter(year == 2020) %>%
   # Recode class
@@ -114,10 +87,10 @@ number_countries_visited
 # What fraction of visited countries had positive port visits?
 scales::percent(number_countries_visited_by_positive / number_countries_visited)
 
-# Summarize number of anchorages visited by positive vessels
+# Summarize number of potyd visited by positive vessels
 # Include from-and-to anchorages
-# Just use main label classification for anchorage - not sublabel
-distinct_positive_anchorages <- c((voyage_summary_with_predictions %>%
+# Just use main "label" classification for port - not "sublabel", which corresponds to specific anchorages within a port
+distinct_positive_ports <- c((voyage_summary_with_predictions %>%
   filter(class_mode == "Positive") %>%
     .$from_anchorage_label),
   (voyage_summary_with_predictions %>%
@@ -126,51 +99,45 @@ distinct_positive_anchorages <- c((voyage_summary_with_predictions %>%
   unique() %>%
   length()
 
-distinct_positive_anchorages
+distinct_positive_ports
 
-# Summarize number of anchorages visited by any vessels
-# Include from-and-to anchorages
-# Just use main label classification for anchorage - not sublabel
-distinct_anchorages <- c((voyage_summary_with_predictions %>%
+# Summarize number of ports visited by any vessels
+# Include from-and-to ports
+# Just use main "label" classification for port - not "sublabel", which corresponds to specific anchorages within a port
+distinct_ports <- c((voyage_summary_with_predictions %>%
                                      .$from_anchorage_label),
                                   (voyage_summary_with_predictions %>%
                                      .$to_anchorage_label)) %>%
   unique() %>%
   length()
 
-distinct_anchorages
+scales::comma(distinct_ports)
 
 # Fraction anchorages visited by positive vessels:
-scales::percent(distinct_positive_anchorages / distinct_anchorages)
+scales::percent(distinct_positive_ports / distinct_ports)
 
 # Summarize number of positive country-to-country voyages
 country_summary <- voyage_summary_with_predictions %>%
   group_by(from_country,to_country,class_mode) %>%
   summarize(number_voyages = sum(number_voyages,na.rm=TRUE)) %>%
   ungroup() %>%
-  dplyr::select(from = from_country,
-                to = to_country,
-                value = number_voyages,
-                class_mode) %>%
-  filter(!is.na(from),
-         !is.na(to)) %>%
   filter(class_mode == "Positive")
 
 # How many voyages happened within a single country?
 positive_voyages_within_country <- country_summary %>%
-  filter(from == to) %>%
-  summarize(value = sum(value,na.rm=TRUE)) %>%
-  .$value
+  filter(from_country == to_country) %>%
+  summarize(number_voyages = sum(number_voyages,na.rm=TRUE)) %>%
+  .$number_voyages
 
-positive_voyages_within_country
+scales::comma(positive_voyages_within_country)
 
 # How many voyages happened in total?
-total_positive_voyages_country<- country_summary %>%
-  summarize(value = sum(value,na.rm=TRUE)) %>%
-  .$value
+total_positive_voyages <- country_summary %>%
+  summarize(number_voyages = sum(number_voyages,na.rm=TRUE)) %>%
+  .$number_voyages
 
 # What fraction of positive voyages occurred within a single country?
-scales::percent(positive_voyages_within_country / total_positive_voyages_within_country)
+scales::percent(positive_voyages_within_country / total_positive_voyages)
 
 # What fraction of positive voyages occurred between different country?
 scales::percent(1 - positive_voyages_within_country / total_positive_voyages_within_country)
@@ -183,8 +150,9 @@ world_plotting <- getMap(resolution = "low") %>%
   st_as_sf() %>%
   st_transform(map_projection)
 
-# Summarize number of voyages by from_anchorage
-anchorages_with_predictions_from <- anchorages_with_predictions %>%
+# Summarize number of positive voyages by from_anchorage_label
+voyages_with_predictions_from <- voyage_summary_with_predictions %>%
+  filter(class_mode == "Positive") %>%
   dplyr::select(anchorage_label = from_anchorage_label,
                 anchorage_sublabel  = from_anchorage_sublabel,
                 lat = from_lat,
@@ -192,8 +160,9 @@ anchorages_with_predictions_from <- anchorages_with_predictions %>%
                 country = from_country,
                 number_voyages)
 
-# Summarize number of voyages by to_anchorage
-anchorages_with_predictions_to <- anchorages_with_predictions %>%
+# Summarize number of positive voyages by to_anchorage_label
+voyages_with_predictions_to <- voyage_summary_with_predictions %>%
+  filter(class_mode == "Positive")%>%
   dplyr::select(anchorage_label = to_anchorage_label,
                 anchorage_sublabel  = to_anchorage_sublabel,
                 lat = to_lat,
@@ -201,11 +170,11 @@ anchorages_with_predictions_to <- anchorages_with_predictions %>%
                 country = to_country,
                 number_voyages)
 
-# Combine from_anchorage visits and to_anchorage visits,
+# Combine from_anchorage_label visits and to_anchorage_label visits,
 # Then summarize number of voyages, regardless of whether port from from or to
-anchorages_with_predictions_combined <- anchorages_with_predictions_from %>%
-  bind_rows(anchorages_with_predictions_to) %>%
-  group_by(anchorage_label, anchorage_sublabel, country,lat, lon) %>%
+ports_with_predictions_combined <- voyages_with_predictions_from %>%
+  bind_rows(voyages_with_predictions_to) %>%
+  group_by(anchorage_label, country,lat, lon) %>%
   summarize(number_voyages = sum(number_voyages)) %>%
   ungroup() %>%
   # Convert country code to iso3, for consistency
@@ -214,21 +183,21 @@ anchorages_with_predictions_combined <- anchorages_with_predictions_from %>%
                                destination = "country.name")) %>%
   # Give anchorage a meaningful name, combining anchorage_label and country
   mutate(anchorage_label = stringr::str_to_sentence(anchorage_label)) %>%
-  mutate(anchorage_name = glue::glue("{anchorage_label}, {country}")) %>%
-  dplyr::select(-c(anchorage_label,anchorage_sublabel,country))
+  mutate(anchorage_name = glue::glue("{anchorage_label} ({country})")) %>%
+  dplyr::select(-c(anchorage_label,country))
 
-# Now summarize number of voyages that past through each anchorage
-anchorages_with_predictions_combined_summary <- anchorages_with_predictions_combined %>%
+ports_with_predictions_combined_summary <- ports_with_predictions_combined %>%
   group_by(anchorage_name) %>%
   summarize(number_voyages = sum(number_voyages)) %>%
-  ungroup() %>%
+  ungroup()%>%
   arrange(-number_voyages)
 
-# Select the top 10 ports in terms of positive voyage visits
-top_10_ports_with_positives <- anchorages_with_predictions_combined_summary %>%
+
+# Select the top 5 ports in terms of positive voyage visits
+top_10_ports_with_positives <- ports_with_predictions_combined_summary %>%
   slice(1:10)
 
-# Make a nice looking table of top 10 ports
+# Make a nice looking table of top 5 ports
 top_10_ports_with_positives %>%
   mutate(number_voyages = prettyNum(number_voyages, big.mark = ",")) %>%
   rename(Port = anchorage_name,
@@ -236,11 +205,12 @@ top_10_ports_with_positives %>%
   knitr::kable()%>%
   kableExtra::kable_styling()
 
-top_10_ports_with_positives$anchorage_name
+top_10_ports_with_positives$anchorage_name %>%
+  paste(collapse = ", ")
 
 # For each port, find the centroid of all lat/lon locations within the anchorage
 # Some have multiple anchorages within a port
-anchorages_with_predictions_combined_centroids <- anchorages_with_predictions_combined %>%
+ports_with_predictions_combined_centroids <- anchorages_with_predictions_combined %>%
   st_as_sf(coords = c("lon", "lat"),
            crs = 4326) %>%
   group_by(anchorage_name) %>%
@@ -289,8 +259,6 @@ region_summary <- voyage_summary_with_predictions %>%
                 to = to_country,
                 value = number_voyages,
                 class_mode) %>%
-  filter(!is.na(from),
-         !is.na(to)) %>%
   filter(class_mode == "Positive") %>%
   mutate(same_region = ifelse(from == to,"same","different"))
 
@@ -300,10 +268,10 @@ total_voyages <- region_summary %>%
   sum()
 
 # Summarize total number of voyages to different regions
-total_voyages_different_regions <- region_summary %>%
-  filter(from !=to ) %>%
+total_voyages_same_regions <- region_summary %>%
+  filter(from ==to ) %>%
   .$value %>%
   sum()
 
 # Fraction of voyages to different regions
-scales::percent(total_voyages_different_regions/total_voyages)
+scales::percent(1 - total_voyages_same_regions/total_voyages)
