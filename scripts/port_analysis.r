@@ -272,6 +272,29 @@ circlize_df_all <- voyage_summary_with_predictions %>%
   filter(!is.na(from),
          !is.na(to))
 
+circlize_df_all_table <- circlize_df_all %>%
+  filter(class_mode == "Positive") %>%
+  mutate(same_region = ifelse(from == to,"same","different")) %>%
+  group_by(from,same_region) %>%
+  summarize(number_voyages = sum(value)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = "same_region",
+              values_from = "number_voyages") %>%
+  mutate(total = different+same) %>%
+  arrange(-total) %>%
+  mutate(same = glue::glue("{prettyNum(same,big.mark=',')} ({scales::percent(same/total, accuracy = 1)})"),
+         different = glue::glue("{prettyNum(different,big.mark=',')} ({scales::percent(different/total, accuracy = 1)})"),
+         total = prettyNum(total, big.mark=','),
+  ) %>%
+  dplyr::select(Region = from,
+         `Total trips` = total,
+         `Within-region trips` = same,
+         `Outside-region trips` = different)
+
+circlize_df_all_table %>%
+  knitr::kable()%>%
+  kableExtra::kable_styling()
+
 # For chord diagram, just include positives
 circlize_df <- circlize_df_all %>%
   filter(class_mode == "Positive")
@@ -342,3 +365,116 @@ circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
 
 # Now close the PNG so the figure saves
 dev.off()
+
+# Load query to generate anchorage summary by from and to port and by forced labor class predictions
+# We use `world-fishing-827.prj_forced_labor.pred_stats_per_vessel_year_dev_2021` to get class predictions
+# But you may eventually want to changet it to ensure the best prediction table is being used
+anchorages_with_predictions_query <- read_file(paste0(query_path,"anchorages_with_predictions.sql"))
+
+# Run this query and store on BQ
+bq_project_query(x = emlab_project, query = anchorages_with_predictions_query,
+                 destination_table = bq_table(project = gfw_project,
+                                              table = "anchorages_with_predictions",
+                                              dataset = "prj_forced_labor"),
+                 use_legacy_sql = FALSE, allowLargeResults = TRUE,
+                 write_disposition = "WRITE_TRUNCATE")
+
+
+# Cache anchorage data to repo for plotting
+bq_project_query(emlab_project, "SELECT * FROM `world-fishing-827.prj_forced_labor.anchorages_with_predictions`") %>%
+  bq_table_download(n_max = Inf) %>%
+  write_csv(file=here::here("data","anchorages_with_predictions.csv"))
+
+# Load cached data
+anchorages_with_predictions <- read_csv(here::here("data","anchorages_with_predictions.csv")) %>%
+  # Only want last year of predictions, 2020
+  filter(year == 2020) %>%
+  # Only care above positives
+  filter(class_mode ==1)
+
+# Summarize number of voyages by from_anchorage
+anchorages_with_predictions_from <- anchorages_with_predictions %>%
+  dplyr::select(anchorage_label = from_anchorage_label,
+                anchorage_sublabel  = from_anchorage_sublabel,
+                lat = from_lat,
+                lon = from_lon,
+                country = from_country,
+                number_voyages)
+
+# Summarize number of voyages by to_anchorage
+anchorages_with_predictions_to <- anchorages_with_predictions %>%
+  dplyr::select(anchorage_label = to_anchorage_label,
+                anchorage_sublabel  = to_anchorage_sublabel,
+                lat = to_lat,
+                lon = to_lon,
+                country = to_country,
+                number_voyages)
+
+# Combine from_anchorage visits and to_anchorage visits,
+# Then summarize number of voyages, regardless of whether port from from or to
+anchorages_with_predictions_combined <- anchorages_with_predictions_from %>%
+  bind_rows(anchorages_with_predictions_to) %>%
+  group_by(anchorage_label, anchorage_sublabel, country,lat, lon) %>%
+  summarize(number_voyages = sum(number_voyages)) %>%
+  ungroup() %>%
+  # Convert country code to iso3, for consistency
+  mutate(country = countrycode(country,
+                               origin = "iso3c",
+                               destination = "country.name")) %>%
+  mutate(anchorage_label = stringr::str_to_sentence(anchorage_label)) %>%
+  mutate(anchorage_name = glue::glue("{anchorage_label}, {country}")) %>%
+  dplyr::select(-c(anchorage_label,anchorage_sublabel,country))
+
+anchorages_with_predictions_combined_summary <- anchorages_with_predictions_combined %>%
+  group_by(anchorage_name) %>%
+  summarize(number_voyages = sum(number_voyages)) %>%
+  ungroup() %>%
+  arrange(-number_voyages)
+
+top_10_ports_with_positives <- anchorages_with_predictions_combined_summary %>%
+  slice(1:10)
+
+top_10_ports_with_positives %>%
+  mutate(number_voyages = prettyNum(number_voyages, big.mark = ",")) %>%
+  rename(Port = anchorage_name,
+         `Number port visits` = number_voyages) %>%
+  knitr::kable()%>%
+  kableExtra::kable_styling()
+
+top_10_ports_with_positives$anchorage_name
+
+anchorages_with_predictions_combined_centroids <- anchorages_with_predictions_combined %>%
+  st_as_sf(coords = c("lon", "lat"),
+           crs = 4326) %>%
+  group_by(anchorage_name) %>%
+  summarise(st_union(geometry)) %>%
+  st_centroid() %>%
+  left_join(anchorages_with_predictions_combined_summary, by = "anchorage_name") %>%
+  st_transform(st_crs(world_plotting))
+
+# Create map of port visits, filling each country based on number
+# of port visits that were by positive vessels in 2020
+# I think fraction is more informative, but including this one in case you like it
+port_visits_number_by_port_map <- ggplot() +
+  geom_sf(data = world_plotting,
+          size = 0.1,
+          color = "grey50",
+          fill = "grey70") +
+  geom_sf(data = anchorages_with_predictions_combined_centroids,
+          aes(size = number_voyages),
+          fill = NA,
+          shape = 21,
+          stroke = 0.5) +
+  theme_minimal() +
+  theme(panel.grid.major = element_blank()) +
+  scale_size_continuous("Number\nof positive\nport visits",
+                        range = c(0.1,7),
+                        labels = scales::comma)
+
+port_visits_number_by_port_map
+
+# Save map as figure for paper
+ggsave(here::here("figures","model_paper_port_visits_number_by_port_map.png"),
+       port_visits_number_by_port_map,
+       width=7,height=3,device="png",dpi=300, bg = 'white')
+
