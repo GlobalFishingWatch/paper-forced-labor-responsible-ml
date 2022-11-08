@@ -8,21 +8,26 @@ Joo et al.
 ## `original` branch
 
 -   It contains the
-    [codes](https://github.com/GlobalFishingWatch/forced-labor-trustability/tree/main/scripts/model_repro_training_data.R)
+    [codes](https://github.com/GlobalFishingWatch/forced-labor-trustability/tree/original/scripts)
     to do the analyses of the paper.
 
 -   There is no data available in this branch, so the codes cannot be
     run by external users.
 
--   The first step here is to [run
-    queries](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/queries_premodel.r)
+-   First step: [Run
+    queries](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/01_queries_premodel.r)
     to match tables of vessel information and compute movement patterns.
 
--   Then we
-    [process](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/queries_premodel.r)
+-   Second step: [Process](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/02_format_data.r)
     the data to be in the right format for the model.
+    
+-   Third, fourth and fifth steps: 
+    [bag](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/03_sensitivity_bags.r),
+    [random forest hyperparameter](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/04_sensitivity_hyper.r),
+    and [seed](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/05_sensitivity_seeds.r) 
+    sensitivity analyses to fix the values of those parameters.
 
--   We
+-   Sixth: With those optimal values, 
     [run](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/model_run_non_repro.r)
     the model, do predictions, compute performance and fairness
 
