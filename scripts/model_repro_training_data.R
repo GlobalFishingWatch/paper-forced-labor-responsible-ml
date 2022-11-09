@@ -24,6 +24,9 @@ training_repro |>
   dplyr::summarise(n = dplyr::n())
 
 
+############### NOW MAKING SURE THAT THE MODEL RUNS WITH THIS FORMAT OF #####
+######################## TRAINING DATA #######################################
+
 ################## writing the recipe ##########################################
 
 fl_rec <- recipes::recipe(known_offender ~ .,
@@ -33,7 +36,7 @@ fl_rec <- recipes::recipe(known_offender ~ .,
   recipes::update_role(indID,
                        new_role = "id") |>
   # actually I don't want to use other variables in the model
-  recipes::update_role(flag_region, known_non_offender,
+  recipes::update_role(flag_region,
                        new_role = "dont_use")  |>
   # and some others will be useful for preventing data leakage
   recipes::update_role(source_id, new_role = "control")  |>
@@ -47,27 +50,32 @@ fl_rec <- recipes::recipe(known_offender ~ .,
 
 ######### specifying the model #################################################
 
-# RF with hyperparameters based on sensitivity results
+# RF with hyperparameters to tune
 rf_spec <-
   # type of model # if no tuning # rand_forest()
   parsnip::rand_forest(trees = 500,
                        # We will tune these two hyperparameters
-                       mtry = 1,
-                       min_n = 15) |>
+                       mtry = tune(),
+                       min_n = tune()) |>
   # mode
   parsnip::set_mode("classification") |>
   # engine/package
-  parsnip::set_engine("ranger", regularization.factor = 0.5)
+  parsnip::set_engine("ranger", regularization.factor = tune())
+
 
 
 ########### training and testing scheme ########################################
 
 ## defining some parameter values ##
-num_folds <- 2 # number of folds
-num_bags <- 5 #10
+num_folds <- 2 # number of folds SHOULD BE 5
+num_bags <- 5 #10,20,30,50,100 # Keep this low for now for speed,
+# but can crank up later
 down_sample_ratio <- 1 # downsampling ratio
 # Set common seed to use anywhere that uses random numbers
-num_common_seeds <- 2 # 5
+# We'll vary this to get confidence intervals
+# Eventually we can crank this up (16,32,64), but keep it to 2 for now for
+# testing
+num_common_seeds <- 2
 common_seed_tibble <- tibble::tibble(common_seed =
                                        seq(1:num_common_seeds) * 101)
 
@@ -116,30 +124,51 @@ if (!require("forcedlabor")) {
 
 # library(forcedlabor)
 
-### Training and prediction (scores) ###########################################
-## This stage builds models using each seed, CV analysis split, and bag
+### FIRST TRAINING STAGE ###
+## This stage builds models using each seed, CV analysis split, and hyperparameter combination
 ## and generates predictions for CV assessment split, which can later be evaluated against the observed classes
 ## Each model uses the data pre-processing recipe and model as specified above
 
 tictoc::tic()
-# train_pred_proba <- forcedlabor::ml_training(training_df = training_repro,
-#                                              fl_rec = fl_rec,
-#                                              rf_spec = rf_spec,
-#                                              cv_splits_all = cv_splits_all,
-#                                              bag_runs = bag_runs,
-#                                              down_sample_ratio = down_sample_ratio,
-#                                              num_grid = 2,
-#                                              parallel_plan = parallel_plan,
-#                                              free_cores = free_cores)
-train_pred_proba <- forcedlabor::ml_train_predict(training_df = training_df,
-                                                  fl_rec = fl_rec,
-                                                  rf_spec = rf_spec,
-                                                  cv_splits_all = cv_splits_all,
-                                                  bag_runs = bag_runs,
-                                                  down_sample_ratio = down_sample_ratio,
-                                                  parallel_plan = parallel_plan,
-                                                  free_cores = free_cores,
-                                                  prediction_df = NULL)
+train_pred_proba <- forcedlabor::ml_training(training_df = training_repro,
+                                             fl_rec = fl_rec,
+                                             rf_spec = rf_spec,
+                                             cv_splits_all = cv_splits_all,
+                                             bag_runs = bag_runs,
+                                             down_sample_ratio = down_sample_ratio,
+                                             num_grid = 2,
+                                             parallel_plan = parallel_plan,
+                                             free_cores = free_cores)
+tictoc::toc()
+
+
+
+###### finding the optimal threshold and hyperparameters #########
+## This stage selects the best hyperparameter combination from train_pred_proba
+## by maximizing mean ROC AUC, averaged across folds, as the metric
+
+tictoc::tic()
+best_hyperparameters <- forcedlabor::ml_hyperpar(train_pred_proba)
+# write_csv(best_hyperparameters,here::here("outputs/stats",
+# "best_hyperpar.csv"))
+tictoc::toc()
+
+
+
+####### Frankenstraining ########################################
+## Using the best hyperparameters, generate predictions for each random seed, CV split, and bag
+
+tictoc::tic()
+cv_model_res <- forcedlabor::ml_frankenstraining(training_df = training_df,
+                                                 fl_rec = fl_rec,
+                                                 rf_spec = rf_spec,
+                                                 cv_splits_all = cv_splits_all,
+                                                 bag_runs = bag_runs,
+                                                 down_sample_ratio = down_sample_ratio,
+                                                 parallel_plan = parallel_plan,
+                                                 free_cores = free_cores,
+                                                 best_hyperparameters = best_hyperparameters,
+                                                 prediction_df = NULL)
 tictoc::toc()
 
 
@@ -152,7 +181,7 @@ tictoc::toc()
 
 
 tictoc::tic()
-classif_res <- forcedlabor::ml_classification(data = train_pred_proba, common_seed_tibble,
+classif_res <- forcedlabor::ml_classification(data = cv_model_res, common_seed_tibble,
                                               steps = 1000, plotting = FALSE,
                                               filepath = NULL,
                                               threshold = seq(0, .99, by = 0.01), eps = 0.01)
