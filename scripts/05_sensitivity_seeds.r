@@ -89,7 +89,7 @@ cv_splits_all <- common_seed_tibble |>
 
 if (!require("forcedlabor")) {
   credentials::set_github_pat()
-  devtools::install_github("GlobalFishingWatch/forcedlabor@fixed-hyper")
+  devtools::install_github("GlobalFishingWatch/forcedlabor@main")
 }
 
 ### FIRST TRAINING STAGE ###
