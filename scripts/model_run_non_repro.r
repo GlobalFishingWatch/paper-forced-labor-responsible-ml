@@ -1,8 +1,12 @@
 
 training_df <- readr::read_rds(file = "./outputs/training.rds")
+# we don't train with known_offenders, so it doesn't have level 1 in known_non_offender
+levels(training_df$known_non_offender) <- c(levels(training_df$known_non_offender),1)
+
 prediction_df <- readr::read_rds(file = "./outputs/prediction.rds")
-# col_factor <- c("known_offender", "source_id", "gear", "ais_type", "foc")
-# training_repro[col_factor] <- lapply(training_repro[col_factor], factor)
+# we only have known_offenders in the prediction dataset, so it doesn't have level 0 in known_non_offender
+levels(prediction_df$known_non_offender) <- c(levels(prediction_df$known_non_offender),0)
+
 whole_df <- rbind.data.frame(training_df, prediction_df)
 
 ########## GENERATING TABLE 1 #############
@@ -57,9 +61,6 @@ whole_df |>
 
 
 
-############### NOW MAKING SURE THAT THE MODEL RUNS WITH THIS FORMAT OF #####
-######################## TRAINING DATA #######################################
-
 ################## writing the recipe ##########################################
 
 fl_rec <- recipes::recipe(known_offender ~ .,
@@ -83,32 +84,28 @@ fl_rec <- recipes::recipe(known_offender ~ .,
 
 ######### specifying the model #################################################
 
-# RF with hyperparameters to tune
+# RF with hyperparameters based on sensitivity_hyper.r results
 rf_spec <-
   # type of model # if no tuning # rand_forest()
   parsnip::rand_forest(trees = 500,
                        # We will tune these two hyperparameters
-                       mtry = tune(),
-                       min_n = tune()) |>
+                       mtry = 1,
+                       min_n = 15) |>
   # mode
   parsnip::set_mode("classification") |>
   # engine/package
-  parsnip::set_engine("ranger", regularization.factor = tune())
+  parsnip::set_engine("ranger", regularization.factor = 0.5)
 
 
 
 ########### training and testing scheme ########################################
 
-## defining some parameter values ##
-num_folds <- 2 # number of folds SHOULD BE 5
-num_bags <- 5 #10,20,30,50,100 # Keep this low for now for speed,
-# but can crank up later
+## defining some parameter values based on sensitivity results
+num_folds <- 5
+num_bags <- 10
 down_sample_ratio <- 1 # downsampling ratio
 # Set common seed to use anywhere that uses random numbers
-# We'll vary this to get confidence intervals
-# Eventually we can crank this up (16,32,64), but keep it to 2 for now for
-# testing
-num_common_seeds <- 2
+num_common_seeds <- 3
 common_seed_tibble <- tibble::tibble(common_seed =
                                        seq(1:num_common_seeds) * 101)
 
@@ -154,45 +151,18 @@ if (!require("forcedlabor")) {
 }
 
 
-### FIRST TRAINING STAGE ###
+### training and prediction (scores)
 
 tictoc::tic()
-train_pred_proba <- forcedlabor::ml_training(training_df = training_df,
+train_pred_proba <- forcedlabor::ml_train_predict(training_df = training_df,
                                              fl_rec = fl_rec,
                                              rf_spec = rf_spec,
                                              cv_splits_all = cv_splits_all,
                                              bag_runs = bag_runs,
                                              down_sample_ratio = down_sample_ratio,
-                                             num_grid = 2,
                                              parallel_plan = parallel_plan,
-                                             free_cores = free_cores)
-tictoc::toc()
-
-
-
-###### finding the optimal threshold and hyperparameters #########
-
-tictoc::tic()
-best_hyperparameters <- forcedlabor::ml_hyperpar(train_pred_proba)
-# write_csv(best_hyperparameters,here::here("outputs/stats",
-# "best_hyperpar.csv"))
-tictoc::toc()
-
-
-
-####### Frankenstraining ########################################
-
-tictoc::tic()
-cv_model_res <- forcedlabor::ml_frankenstraining(training_df = training_df,
-                                                 fl_rec = fl_rec,
-                                                 rf_spec = rf_spec,
-                                                 cv_splits_all = cv_splits_all,
-                                                 bag_runs = bag_runs,
-                                                 down_sample_ratio = down_sample_ratio,
-                                                 parallel_plan = parallel_plan,
-                                                 free_cores = free_cores,
-                                                 best_hyperparameters = best_hyperparameters,
-                                                 prediction_df = prediction_df)
+                                             free_cores = free_cores,
+                                             prediction_df = prediction_df)
 tictoc::toc()
 
 
@@ -200,7 +170,7 @@ tictoc::toc()
 # alpha value will be printed
 
 tictoc::tic()
-classif_res <- forcedlabor::ml_classification(data = cv_model_res, common_seed_tibble,
+classif_res <- forcedlabor::ml_classification(data = train_pred_proba, common_seed_tibble,
                                               steps = 1000, plotting = FALSE,
                                               filepath = NULL,
                                               threshold = seq(0, .99, by = 0.01), eps = 0.01)
@@ -210,17 +180,18 @@ tictoc::toc()
 ########### Recall and specificity #################################################
 
 tictoc::tic()
-perf_metrics <- forcedlabor::ml_perf_metrics(data = classif_res)
+perf_metrics <- forcedlabor::ml_perf_metrics(data = classif_res$pred_conf)
 tictoc::toc()
 #
 # > perf_metrics
 # recall specif
 # 1 0.8888889      1
 
-
+alpha <- classif_res$alpha
 
 ########### Predictions ############################
 
+classif_res <- classif_res$pred_conf
 
 predictions <- classif_res |>
   dplyr::mutate(prediction =
@@ -419,11 +390,11 @@ classif_res |>
 
 classif_res |>
   dplyr::group_by(gear) |>
-  yardstick::recall(truth = factor(.data$known_offender,
+  yardstick::recall(truth = factor(known_offender,
                                    levels = c(1, 0)),
-                    estimate = factor(.data$pred_class,
+                    estimate = factor(pred_class,
                                       levels = c(1, 0))) |>
-  dplyr::select(gear, .data$.estimate)
+  dplyr::select(gear, .estimate)
 
 
 # # A tibble: 4 × 2
@@ -439,11 +410,11 @@ classif_res |>
 
 classif_res |>
   dplyr::group_by(flag_region) |>
-  yardstick::recall(truth = factor(.data$known_offender,
+  yardstick::recall(truth = factor(known_offender,
                                    levels = c(1, 0)),
-                    estimate = factor(.data$pred_class,
+                    estimate = factor(pred_class,
                                       levels = c(1, 0))) |>
-  dplyr::select(flag_region, .data$.estimate)
+  dplyr::select(flag_region, .estimate)
 
 # # A tibble: 2 × 2
 # flag_region .estimate
@@ -456,11 +427,11 @@ classif_res |>
 
 classif_res |>
   dplyr::group_by(gear, flag_region) |>
-  yardstick::recall(truth = factor(.data$known_offender,
+  yardstick::recall(truth = factor(known_offender,
                                    levels = c(1, 0)),
-                    estimate = factor(.data$pred_class,
+                    estimate = factor(pred_class,
                                       levels = c(1, 0))) |>
-  dplyr::select(gear, flag_region, .data$.estimate)
+  dplyr::select(gear, flag_region, .estimate)
 #
 # # A tibble: 8 × 3
 # gear               flag_region .estimate
