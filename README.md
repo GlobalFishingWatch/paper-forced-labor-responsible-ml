@@ -28,7 +28,7 @@ Joo et al.
     sensitivity analyses to fix the values of those parameters.
 
 -   Sixth: With those optimal values, 
-    [run](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/model_run_non_repro.r)
+    [run](https://github.com/GlobalFishingWatch/prj-forced-labor/tree/model-paper/scripts/06_model_run_non_repro.r)
     the model, do predictions, compute performance and fairness
 
 -   Need to add ports and other calculations
