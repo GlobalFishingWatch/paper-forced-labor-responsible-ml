@@ -186,11 +186,12 @@ tictoc::tic()
 perf_metrics <- forcedlabor::ml_perf_metrics(data = classif_res$pred_conf)
 tictoc::toc()
 #
-# > perf_metrics
-# recall specif
-# 1 0.8888889      1
+# perf_metrics
+# recall    specif
+# 1 0.8888889 0.9811321
 
 alpha <- classif_res$alpha
+# [1] 0.2832833
 
 ########### Predictions ############################
 
@@ -203,12 +204,13 @@ predictions <- classif_res |>
   dplyr::group_by(prediction) |>
   dplyr::summarise(N = dplyr::n())
 
-# > predictions
+# predictions
 # # A tibble: 2 × 2
 # prediction     N
 # <chr>      <int>
-#   1 Negative   78656
-# 2 Positive   28725
+#   1 Negative   77574
+# 2 Positive   29807
+
 
 
 classif_res <- classif_res |>
@@ -230,14 +232,15 @@ predictions_gear <- classif_res |>
 # # Groups:   prediction [2]
 # prediction gear                   N
 # <chr>      <fct>              <int>
-#   1 Negative   drifting_longlines  5056
-# 2 Negative   purse_seines        1979
-# 3 Negative   squid_jigger         362
-# 4 Negative   trawlers           71259
-# 5 Positive   drifting_longlines 15871
-# 6 Positive   purse_seines        3338
-# 7 Positive   squid_jigger        5674
-# 8 Positive   trawlers            3842
+#   1 Negative   drifting_longlines  4281
+# 2 Negative   purse_seines        1986
+# 3 Negative   squid_jigger         436
+# 4 Negative   trawlers           70871
+# 5 Positive   drifting_longlines 16646
+# 6 Positive   purse_seines        3331
+# 7 Positive   squid_jigger        5600
+# 8 Positive   trawlers            4230
+
 
 # Predictions by region
 
@@ -252,10 +255,10 @@ predictions_region <- classif_res |>
 # # Groups:   prediction [2]
 # prediction flag_region     N
 # <chr>      <chr>       <int>
-#   1 Negative   Asia         5980
-# 2 Negative   Other       72676
-# 3 Positive   Asia        19378
-# 4 Positive   Other        9347
+#   1 Negative   Asia         5276
+# 2 Negative   Other       72298
+# 3 Positive   Asia        20082
+# 4 Positive   Other        9725
 
 
 # Predictions by gear-region
@@ -271,22 +274,22 @@ predictions_gear_region <- classif_res |>
 # # Groups:   prediction, gear [8]
 # prediction gear               flag_region     N
 # <chr>      <fct>              <chr>       <int>
-#   1 Negative   drifting_longlines Asia         1802
-# 2 Negative   drifting_longlines Other        3254
-# 3 Negative   purse_seines       Asia          124
-# 4 Negative   purse_seines       Other        1855
-# 5 Negative   squid_jigger       Asia          100
-# 6 Negative   squid_jigger       Other         262
-# 7 Negative   trawlers           Asia         3954
-# 8 Negative   trawlers           Other       67305
-# 9 Positive   drifting_longlines Asia        11078
-# 10 Positive   drifting_longlines Other        4793
-# 11 Positive   purse_seines       Asia          960
-# 12 Positive   purse_seines       Other        2378
-# 13 Positive   squid_jigger       Asia         5135
-# 14 Positive   squid_jigger       Other         539
-# 15 Positive   trawlers           Asia         2205
-# 16 Positive   trawlers           Other        1637
+#   1 Negative   drifting_longlines Asia         1257
+# 2 Negative   drifting_longlines Other        3024
+# 3 Negative   purse_seines       Asia          143
+# 4 Negative   purse_seines       Other        1843
+# 5 Negative   squid_jigger       Asia          126
+# 6 Negative   squid_jigger       Other         310
+# 7 Negative   trawlers           Asia         3750
+# 8 Negative   trawlers           Other       67121
+# 9 Positive   drifting_longlines Asia        11623
+# 10 Positive   drifting_longlines Other        5023
+# 11 Positive   purse_seines       Asia          941
+# 12 Positive   purse_seines       Other        2390
+# 13 Positive   squid_jigger       Asia         5109
+# 14 Positive   squid_jigger       Other         491
+# 15 Positive   trawlers           Asia         2409
+# 16 Positive   trawlers           Other        1821
 
 
 ########### Confidence levels ##########################
@@ -306,9 +309,8 @@ predictions |> dplyr::left_join(count_conf, by = "prediction") |>
 # # A tibble: 2 × 4
 # prediction     N     n  prop
 # <chr>      <int> <int> <dbl>
-#   1 Negative   78656 71696 0.912
-# 2 Positive   28725 21716 0.756
-
+#   1 Negative   77574 74822 0.965
+# 2 Positive   29807 26633 0.894
 
 
 classif_res |>
@@ -325,14 +327,14 @@ classif_res |>
 # # Groups:   prediction [2]
 # prediction gear                   n     N  prop
 # <chr>      <fct>              <int> <int> <dbl>
-#   1 Negative   drifting_longlines  2908  5056 0.575
-# 2 Negative   purse_seines        1630  1979 0.824
-# 3 Negative   squid_jigger         111   362 0.307
-# 4 Negative   trawlers           67047 71259 0.941
-# 5 Positive   drifting_longlines 12314 15871 0.776
-# 6 Positive   purse_seines        2638  3338 0.790
-# 7 Positive   squid_jigger        5261  5674 0.927
-# 8 Positive   trawlers            1503  3842 0.391
+#   1 Negative   drifting_longlines  3332  4281 0.778
+# 2 Negative   purse_seines        1836  1986 0.924
+# 3 Negative   squid_jigger         237   436 0.544
+# 4 Negative   trawlers           69417 70871 0.979
+# 5 Positive   drifting_longlines 15393 16646 0.925
+# 6 Positive   purse_seines        2970  3331 0.892
+# 7 Positive   squid_jigger        5307  5600 0.948
+# 8 Positive   trawlers            2963  4230 0.700
 
 
 classif_res |>
@@ -349,10 +351,10 @@ classif_res |>
 # # Groups:   prediction [2]
 # prediction flag_region     n     N  prop
 # <chr>      <chr>       <int> <int> <dbl>
-#   1 Negative   Asia         3608  5980 0.603
-# 2 Negative   Other       68088 72676 0.937
-# 3 Positive   Asia        15525 19378 0.801
-# 4 Positive   Other        6191  9347 0.662
+#   1 Negative   Asia         4298  5276 0.815
+# 2 Negative   Other       70524 72298 0.975
+# 3 Positive   Asia        18610 20082 0.927
+# 4 Positive   Other        8023  9725 0.825
 
 
 classif_res |>
@@ -369,22 +371,22 @@ classif_res |>
 # # Groups:   prediction, gear [8]
 # prediction gear               flag_region     n     N  prop
 # <chr>      <fct>              <chr>       <int> <int> <dbl>
-#   1 Negative   drifting_longlines Asia          597  1802 0.331
-# 2 Negative   drifting_longlines Other        2311  3254 0.710
-# 3 Negative   purse_seines       Asia           94   124 0.758
-# 4 Negative   purse_seines       Other        1536  1855 0.828
-# 5 Negative   squid_jigger       Asia           59   100 0.59
-# 6 Negative   squid_jigger       Other          52   262 0.198
-# 7 Negative   trawlers           Asia         2858  3954 0.723
-# 8 Negative   trawlers           Other       64189 67305 0.954
-# 9 Positive   drifting_longlines Asia         8997 11078 0.812
-# 10 Positive   drifting_longlines Other        3317  4793 0.692
-# 11 Positive   purse_seines       Asia          726   960 0.756
-# 12 Positive   purse_seines       Other        1912  2378 0.804
-# 13 Positive   squid_jigger       Asia         5032  5135 0.980
-# 14 Positive   squid_jigger       Other         229   539 0.425
-# 15 Positive   trawlers           Asia          770  2205 0.349
-# 16 Positive   trawlers           Other         733  1637 0.448
+#   1 Negative   drifting_longlines Asia          806  1257 0.641
+# 2 Negative   drifting_longlines Other        2526  3024 0.835
+# 3 Negative   purse_seines       Asia          112   143 0.783
+# 4 Negative   purse_seines       Other        1724  1843 0.935
+# 5 Negative   squid_jigger       Asia           96   126 0.762
+# 6 Negative   squid_jigger       Other         141   310 0.455
+# 7 Negative   trawlers           Asia         3284  3750 0.876
+# 8 Negative   trawlers           Other       66133 67121 0.985
+# 9 Positive   drifting_longlines Asia        10957 11623 0.943
+# 10 Positive   drifting_longlines Other        4436  5023 0.883
+# 11 Positive   purse_seines       Asia          823   941 0.875
+# 12 Positive   purse_seines       Other        2147  2390 0.898
+# 13 Positive   squid_jigger       Asia         5019  5109 0.982
+# 14 Positive   squid_jigger       Other         288   491 0.587
+# 15 Positive   trawlers           Asia         1811  2409 0.752
+# 16 Positive   trawlers           Other        1152  1821 0.633
 
 
 ######### Fairness (recall) ########################################
@@ -399,14 +401,13 @@ classif_res |>
                                       levels = c(1, 0))) |>
   dplyr::select(gear, .estimate)
 
-
 # # A tibble: 4 × 2
 # gear               .estimate
 # <fct>                  <dbl>
 #   1 drifting_longlines     1
-# 2 purse_seines           0.857
+# 2 purse_seines           0.714
 # 3 squid_jigger           1
-# 4 trawlers               0.364
+# 4 trawlers               0.455
 
 
 # by flag_region
@@ -422,8 +423,8 @@ classif_res |>
 # # A tibble: 2 × 2
 # flag_region .estimate
 # <chr>           <dbl>
-#   1 Asia            0.898
-# 2 Other           0.846
+#   1 Asia            0.881
+# 2 Other           0.923
 
 
 # by gear and flag_region
@@ -435,15 +436,15 @@ classif_res |>
                     estimate = factor(pred_class,
                                       levels = c(1, 0))) |>
   dplyr::select(gear, flag_region, .estimate)
-#
+# #
 # # A tibble: 8 × 3
 # gear               flag_region .estimate
 # <fct>              <chr>           <dbl>
 #   1 drifting_longlines Asia            1
 # 2 drifting_longlines Other           1
-# 3 purse_seines       Asia            0.833
+# 3 purse_seines       Asia            0.667
 # 4 purse_seines       Other           1
 # 5 squid_jigger       Asia            1
 # 6 squid_jigger       Other          NA
 # 7 trawlers           Asia            0.444
-# 8 trawlers           Other           0
+# 8 trawlers           Other           0.5
