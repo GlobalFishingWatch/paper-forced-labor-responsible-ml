@@ -24,6 +24,9 @@ training_repro |>
   dplyr::summarise(n = dplyr::n())
 
 
+############### NOW MAKING SURE THAT THE MODEL RUNS WITH THIS FORMAT OF #####
+######################## TRAINING DATA #######################################
+
 ################## writing the recipe ##########################################
 
 fl_rec <- recipes::recipe(known_offender ~ .,
@@ -33,7 +36,7 @@ fl_rec <- recipes::recipe(known_offender ~ .,
   recipes::update_role(indID,
                        new_role = "id") |>
   # actually I don't want to use other variables in the model
-  recipes::update_role(flag_region, known_non_offender,
+  recipes::update_role(flag_region,
                        new_role = "dont_use")  |>
   # and some others will be useful for preventing data leakage
   recipes::update_role(source_id, new_role = "control")  |>
@@ -47,17 +50,18 @@ fl_rec <- recipes::recipe(known_offender ~ .,
 
 ######### specifying the model #################################################
 
-# RF with hyperparameters based on sensitivity results
+# RF with hyperparameters to tune
 rf_spec <-
   # type of model # if no tuning # rand_forest()
   parsnip::rand_forest(trees = 500,
                        # We will tune these two hyperparameters
-                       mtry = 1,
-                       min_n = 15) |>
+                       mtry = tune(),
+                       min_n = tune()) |>
   # mode
   parsnip::set_mode("classification") |>
   # engine/package
-  parsnip::set_engine("ranger", regularization.factor = 0.5)
+  parsnip::set_engine("ranger", regularization.factor = tune())
+
 
 
 ########### training and testing scheme ########################################
@@ -116,8 +120,8 @@ if (!require("forcedlabor")) {
 
 # library(forcedlabor)
 
-### Training and prediction (scores) ###########################################
-## This stage builds models using each seed, CV analysis split, and bag
+### FIRST TRAINING STAGE ###
+## This stage builds models using each seed, CV analysis split, and hyperparameter combination
 ## and generates predictions for CV assessment split, which can later be evaluated against the observed classes
 ## Each model uses the data pre-processing recipe and model as specified above
 
