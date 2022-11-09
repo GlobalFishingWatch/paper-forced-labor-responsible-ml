@@ -24,9 +24,6 @@ training_repro |>
   dplyr::summarise(n = dplyr::n())
 
 
-############### NOW MAKING SURE THAT THE MODEL RUNS WITH THIS FORMAT OF #####
-######################## TRAINING DATA #######################################
-
 ################## writing the recipe ##########################################
 
 fl_rec <- recipes::recipe(known_offender ~ .,
@@ -36,7 +33,7 @@ fl_rec <- recipes::recipe(known_offender ~ .,
   recipes::update_role(indID,
                        new_role = "id") |>
   # actually I don't want to use other variables in the model
-  recipes::update_role(flag_region,
+  recipes::update_role(flag_region, known_non_offender,
                        new_role = "dont_use")  |>
   # and some others will be useful for preventing data leakage
   recipes::update_role(source_id, new_role = "control")  |>
@@ -50,17 +47,17 @@ fl_rec <- recipes::recipe(known_offender ~ .,
 
 ######### specifying the model #################################################
 
-# RF with hyperparameters to tune
+# RF with hyperparameters based on sensitivity_hyper.r results
 rf_spec <-
   # type of model # if no tuning # rand_forest()
   parsnip::rand_forest(trees = 500,
                        # We will tune these two hyperparameters
-                       mtry = tune(),
-                       min_n = tune()) |>
+                       mtry = 1,
+                       min_n = 15) |>
   # mode
   parsnip::set_mode("classification") |>
   # engine/package
-  parsnip::set_engine("ranger", regularization.factor = tune())
+  parsnip::set_engine("ranger", regularization.factor = 0.5)
 
 
 
