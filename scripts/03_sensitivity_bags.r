@@ -67,7 +67,7 @@ free_cores <- 1 # add more if you need to do many things at the same time
 
 if (!require("forcedlabor")) {
   credentials::set_github_pat()
-  devtools::install_github("GlobalFishingWatch/forcedlabor@fixed-hyper")
+  devtools::install_github("GlobalFishingWatch/forcedlabor@main")
 }
 
 
