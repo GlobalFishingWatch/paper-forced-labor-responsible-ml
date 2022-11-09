@@ -170,10 +170,13 @@ tictoc::toc()
 # alpha value will be printed
 
 tictoc::tic()
-classif_res <- forcedlabor::ml_classification(data = train_pred_proba, common_seed_tibble,
+classif_res <- forcedlabor::ml_classification(data = train_pred_proba,
                                               steps = 1000, plotting = FALSE,
                                               filepath = NULL,
-                                              threshold = seq(0, .99, by = 0.01), eps = 0.01)
+                                              threshold = seq(0, .99, by = 0.01),
+                                              eps = 0.01,
+                                              parallel_plan = parallel_plan,
+                                              free_cores = free_cores)
 tictoc::toc()
 
 
