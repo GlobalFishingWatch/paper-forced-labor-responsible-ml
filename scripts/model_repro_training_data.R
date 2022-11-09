@@ -63,11 +63,11 @@ rf_spec <-
 ########### training and testing scheme ########################################
 
 ## defining some parameter values ##
-num_folds <- 2 # number of folds
-num_bags <- 5 #10
+num_folds <- 5 # number of folds
+num_bags <- 10 #10
 down_sample_ratio <- 1 # downsampling ratio
 # Set common seed to use anywhere that uses random numbers
-num_common_seeds <- 2 # 5
+num_common_seeds <- 5 # 5
 common_seed_tibble <- tibble::tibble(common_seed =
                                        seq(1:num_common_seeds) * 101)
 
@@ -122,15 +122,6 @@ if (!require("forcedlabor")) {
 ## Each model uses the data pre-processing recipe and model as specified above
 
 tictoc::tic()
-# train_pred_proba <- forcedlabor::ml_training(training_df = training_repro,
-#                                              fl_rec = fl_rec,
-#                                              rf_spec = rf_spec,
-#                                              cv_splits_all = cv_splits_all,
-#                                              bag_runs = bag_runs,
-#                                              down_sample_ratio = down_sample_ratio,
-#                                              num_grid = 2,
-#                                              parallel_plan = parallel_plan,
-#                                              free_cores = free_cores)
 train_pred_proba <- forcedlabor::ml_train_predict(training_df = training_df,
                                                   fl_rec = fl_rec,
                                                   rf_spec = rf_spec,
@@ -152,23 +143,28 @@ tictoc::toc()
 
 
 tictoc::tic()
-classif_res <- forcedlabor::ml_classification(data = train_pred_proba, common_seed_tibble,
+classif_res <- forcedlabor::ml_classification(data = train_pred_proba,
                                               steps = 1000, plotting = FALSE,
                                               filepath = NULL,
-                                              threshold = seq(0, .99, by = 0.01), eps = 0.01)
+                                              threshold = seq(0, .99, by = 0.01), eps = 0.01,
+                                              parallel_plan = parallel_plan, free_cores = free_cores)
 tictoc::toc()
 
 
 ########### Recall #################################################
 ## Calculate recall using the predictions
-recall_res <-  forcedlabor::ml_recall(data = classif_res)
+recall_res <-  forcedlabor::ml_recall(data = classif_res$pred_conf)
 # > recall_res
 # [1] 0.9444444
 
 
+alpha <- classif_res$alpha
+
 
 ########### Predictions ############################
 ## Summarize the predictions
+
+classif_res <- classif_res$pred_conf
 
 predictions <- classif_res |>
   dplyr::mutate(prediction =
@@ -198,7 +194,7 @@ predictions_gear <- classif_res |>
                                    pred_class == 0 ~ "Negative")) |>
   dplyr::group_by(prediction, gear) |>
   dplyr::summarise(N = dplyr::n()) |>
-  ungroup()
+  dplyr::ungroup()
 
 # Predictions by region
 
@@ -208,7 +204,7 @@ predictions_region <- classif_res |>
                                    pred_class == 0 ~ "Negative")) |>
   dplyr::group_by(prediction, flag_region) |>
   dplyr::summarise(N = dplyr::n()) |>
-  ungroup()
+  dplyr::ungroup()
 
 # Predictions by gear-region
 
@@ -218,7 +214,7 @@ predictions_gear_region <- classif_res |>
                                    pred_class == 0 ~ "Negative")) |>
   dplyr::group_by(prediction, gear, flag_region) |>
   dplyr::summarise(N = dplyr::n()) |>
-  ungroup()
+  dplyr::ungroup()
 
 
 ########### Confidence levels ##########################
@@ -231,7 +227,7 @@ count_conf <- classif_res |>
   dplyr::group_by(.data$prediction) |>
   dplyr::filter(confidence > 0.8) |>
   dplyr::summarise(n = dplyr::n()) |>
-  ungroup()
+  dplyr::ungroup()
 
 predictions |>
   dplyr::left_join(count_conf, by = "prediction") |>
@@ -252,7 +248,7 @@ classif_res |>
   dplyr::group_by(.data$prediction, .data$gear) |>
   dplyr::filter(confidence > 0.8) |>
   dplyr::summarise(n = dplyr::n()) |>
-  ungroup() |>
+  dplyr::ungroup() |>
   dplyr::left_join(predictions_gear, by = c("prediction", "gear")) |>
   dplyr::mutate(prop = n/N)
 
@@ -278,7 +274,7 @@ classif_res |>
   dplyr::group_by(.data$prediction, .data$flag_region) |>
   dplyr::filter(confidence > 0.8) |>
   dplyr::summarise(n = dplyr::n()) |>
-  ungroup() |>
+  dplyr::ungroup() |>
   dplyr::left_join(predictions_region, by = c("prediction", "flag_region")) |>
   dplyr::mutate(prop = n/N)
 
@@ -299,7 +295,7 @@ classif_res |>
   dplyr::group_by(.data$prediction, .data$gear, .data$flag_region) |>
   dplyr::filter(confidence > 0.8) |>
   dplyr::summarise(n = dplyr::n()) |>
-  ungroup() |>
+  dplyr::ungroup() |>
   dplyr::left_join(predictions_gear_region, by = c("prediction", "gear", "flag_region")) |>
   dplyr::mutate(prop = n/N)
 
@@ -335,7 +331,7 @@ classif_res |>
                                    levels = c(1, 0)),
                     estimate = factor(.data$pred_class,
                                       levels = c(1, 0)))  |>
-  ungroup() |>
+  dplyr::ungroup() |>
   dplyr::select(gear, .data$.estimate)
 
 ## A tibble: 4 × 2
@@ -355,7 +351,7 @@ classif_res |>
                                    levels = c(1, 0)),
                     estimate = factor(.data$pred_class,
                                       levels = c(1, 0))) |>
-  ungroup()  |>
+  dplyr::ungroup()  |>
   dplyr::select(flag_region, .data$.estimate)
 
 # # A tibble: 2 × 2
@@ -372,7 +368,7 @@ classif_res |>
                                    levels = c(1, 0)),
                     estimate = factor(.data$pred_class,
                                       levels = c(1, 0))) |>
-  ungroup() |>
+  dplyr::ungroup() |>
   dplyr::select(gear, flag_region, .data$.estimate)
 
 ## A tibble: 8 × 3
