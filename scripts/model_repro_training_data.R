@@ -33,7 +33,7 @@ fl_rec <- recipes::recipe(known_offender ~ .,
   recipes::update_role(indID,
                        new_role = "id") |>
   # actually I don't want to use other variables in the model
-  recipes::update_role(flag_region,
+  recipes::update_role(flag_region, known_non_offender,
                        new_role = "dont_use")  |>
   # and some others will be useful for preventing data leakage
   recipes::update_role(source_id, new_role = "control")  |>
@@ -116,7 +116,7 @@ if (!require("forcedlabor")) {
 
 # library(forcedlabor)
 
-### FIRST TRAINING STAGE ###
+### Training and prediction (scores) ###########################################
 ## This stage builds models using each seed, CV analysis split, and bag
 ## and generates predictions for CV assessment split, which can later be evaluated against the observed classes
 ## Each model uses the data pre-processing recipe and model as specified above
@@ -143,36 +143,6 @@ train_pred_proba <- forcedlabor::ml_train_predict(training_df = training_df,
 tictoc::toc()
 
 
-
-###### finding the optimal threshold and hyperparameters #########
-## This stage selects the best hyperparameter combination from train_pred_proba
-## by maximizing mean ROC AUC, averaged across folds, as the metric
-
-tictoc::tic()
-best_hyperparameters <- forcedlabor::ml_hyperpar(train_pred_proba)
-# write_csv(best_hyperparameters,here::here("outputs/stats",
-# "best_hyperpar.csv"))
-tictoc::toc()
-
-
-
-####### Frankenstraining ########################################
-## Using the best hyperparameters, generate predictions for each random seed, CV split, and bag
-
-tictoc::tic()
-cv_model_res <- forcedlabor::ml_frankenstraining(training_df = training_df,
-                                                 fl_rec = fl_rec,
-                                                 rf_spec = rf_spec,
-                                                 cv_splits_all = cv_splits_all,
-                                                 bag_runs = bag_runs,
-                                                 down_sample_ratio = down_sample_ratio,
-                                                 parallel_plan = parallel_plan,
-                                                 free_cores = free_cores,
-                                                 best_hyperparameters = best_hyperparameters,
-                                                 prediction_df = NULL)
-tictoc::toc()
-
-
 ####### Classification with dedpul ########################################
 ## Using the predictions for each random seed, CV split, and bag,
 ## use the dedpul algorithm to determine a cutoff for predicting positive or negative
@@ -182,7 +152,7 @@ tictoc::toc()
 
 
 tictoc::tic()
-classif_res <- forcedlabor::ml_classification(data = cv_model_res, common_seed_tibble,
+classif_res <- forcedlabor::ml_classification(data = train_pred_proba, common_seed_tibble,
                                               steps = 1000, plotting = FALSE,
                                               filepath = NULL,
                                               threshold = seq(0, .99, by = 0.01), eps = 0.01)
