@@ -9,6 +9,14 @@ levels(prediction_df$known_non_offender) <- c(levels(prediction_df$known_non_off
 
 whole_df <- rbind.data.frame(training_df, prediction_df)
 
+########## GENERATING FIGURE 1 (now a table) ###########
+
+training_df |>
+  dplyr::filter(known_offender == 1) |>
+  dplyr::group_by(flag) |>
+  dplyr::summarise(n = dplyr::n()) |>
+  dplyr::arrange(dplyr::desc(n))
+
 ########## GENERATING TABLE 1 #############
 
 whole_df |>
