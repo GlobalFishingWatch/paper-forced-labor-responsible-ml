@@ -127,8 +127,7 @@ if (!require("forcedlabor")) {
 ## Each model uses the data pre-processing recipe and model as specified above
 
 tictoc::tic()
-train_pred_proba <- forcedlabor::ml_train_predict(training_df = training_repro,
-                                                  fl_rec = fl_rec,
+train_pred_proba <- forcedlabor::ml_train_predict(fl_rec = fl_rec,
                                                   rf_spec = rf_spec,
                                                   cv_splits_all = cv_splits_all,
                                                   bag_runs = bag_runs,
