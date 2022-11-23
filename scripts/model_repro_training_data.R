@@ -123,7 +123,7 @@ if (!require("forcedlabor")) {
 ## Each model uses the data pre-processing recipe and model as specified above
 
 tictoc::tic()
-train_pred_proba <- forcedlabor::ml_train_predict(training_df = training_df,
+train_pred_proba <- forcedlabor::ml_train_predict(training_df = training_repro,
                                                   fl_rec = fl_rec,
                                                   rf_spec = rf_spec,
                                                   cv_splits_all = cv_splits_all,
@@ -155,13 +155,14 @@ tictoc::toc()
 ########### Recall #################################################
 ## Calculate recall using the predictions
 recall_res <-  forcedlabor::ml_recall(data = classif_res$pred_conf)
-# > recall_res
-# [1] 0.9444444
+# recall_res
+# [1] 0.8888889
 
 
 alpha <- classif_res$alpha
 # alpha
-# [1] 0.2852853
+# "alpha:  0.284284284284284"
+
 
 
 ########### Predictions ############################
@@ -176,7 +177,7 @@ predictions <- classif_res |>
   dplyr::group_by(prediction) |>
   dplyr::summarise(N = dplyr::n())
 
-# # A tibble: 2 × 2
+# # A tibble: 2 × 2 (haven't updated yet)
 # prediction     N
 # <chr>      <int>
 #   1 Negative   77581
