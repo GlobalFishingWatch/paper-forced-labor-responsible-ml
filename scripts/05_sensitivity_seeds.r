@@ -95,8 +95,7 @@ if (!require("forcedlabor")) {
 ### FIRST TRAINING STAGE ###
 
 tictoc::tic()
-train_pred_proba <- forcedlabor::ml_train_predict(training_df = training_df,
-                                     fl_rec = fl_rec,
+train_pred_proba <- forcedlabor::ml_train_predict(fl_rec = fl_rec,
                                      rf_spec = rf_spec,
                                      cv_splits_all = cv_splits_all,
                                      bag_runs = bag_runs,
