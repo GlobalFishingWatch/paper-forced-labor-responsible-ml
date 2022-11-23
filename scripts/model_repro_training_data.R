@@ -1,4 +1,4 @@
-training_repro <- readr::read_rds(file = "./data_output/training_repro.rds")
+training_repro <- readr::read_rds(file = "./data/training_repro.rds")
 # we don't train with known_offenders, so it doesn't have level 1 in known_non_offender
 training_repro$known_non_offender <- factor (training_repro$known_non_offender, levels = c(0,1))
 
