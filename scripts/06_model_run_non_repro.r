@@ -202,6 +202,12 @@ tictoc::toc()
 alpha <- classif_res$alpha
 # [1] 0.2822823
 
+# Gavin's results on MacOS 13.0.1, R 4.2.2
+# [1] "alpha:  0.282282282282282"
+# perf_metrics
+# 1 0.8888889 0.9811321
+#> alpha
+# [1] 0.2872873
 
 ########### Predictions ############################
 
