@@ -1,8 +1,3 @@
-
-training_repro <- readr::read_csv(file = "./data/training_repro.csv")
-col_factor <- c("known_offender", "source_id", "gear", "ais_type", "foc")
-training_repro[col_factor] <- lapply(training_repro[col_factor], factor)
-
 training_repro <- readr::read_rds(file = "./data_output/training_repro.rds")
 # we don't train with known_offenders, so it doesn't have level 1 in known_non_offender
 training_repro$known_non_offender <- factor (training_repro$known_non_offender, levels = c(0,1))
