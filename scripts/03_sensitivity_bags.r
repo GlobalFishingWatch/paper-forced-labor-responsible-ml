@@ -131,11 +131,10 @@ roc_auc_results <- train_pred_proba |>
   dplyr::select(.estimate) |>
   purrr::pluck(1) # unlist first (unique) element
 
-# roc_auc_results
-# # A tibble: 1 × 1
-# .estimate
-# <dbl>
-#   1     0.854
+
+# > roc_auc_results
+# [1] 0.8544894
+
 
 group_auc <- function(train_pred_proba_2, groups){
   as.numeric(unlist(purrr::map_dfr(groups, function(x){
@@ -151,41 +150,33 @@ group_auc <- function(train_pred_proba_2, groups){
 # we just need to separate into two groups: 1-15 and 16-30
 groups <- list(1:15, 16:30)
 auc_2_15 <- group_auc(train_pred_proba, groups)
-# auc_2_15
-# # A tibble: 2 × 1
-# .estimate
-# <dbl>
-#   1     0.854
-# 2     0.854
+# > auc_2_15
+# [1] 0.8538316 0.8551524
+
 
 # 3 groups of 10
 groups <- list(1:10, 11:20, 21:30)
 auc_3_10 <- group_auc(train_pred_proba, groups)
 # auc_3_10
-# # A tibble: 3 × 1
-# .estimate
-# <dbl>
-#   1     0.854
-# 2     0.854
-# 3     0.854
+# [1] 0.8538282 0.8541214 0.8555233
+
 
 # 6 groups of 5
 groups <- list(1:5, 6:10, 11:15, 16:20, 21:25, 26:30)
 auc_6_5 <- group_auc(train_pred_proba, groups)
 # auc_6_5
-# # A tibble: 6 × 1
-# .estimate
-# <dbl>
-#   1     0.852
-# 2     0.856
-# 3     0.854
-# 4     0.854
-# 5     0.857
-# 6     0.851
+# [1] 0.8517673 0.8559536 0.8538737 0.8544542 0.8587196 0.8524787
+
 
 # 30 groups of 1
 groups <- as.list(1:30)
 auc_30_1 <- group_auc(train_pred_proba, groups)
+# auc_30_1
+# [1] 0.8469898 0.8487646 0.8517836 0.8560483 0.8566976 0.8513113 0.8549940
+# [8] 0.8598723 0.8606106 0.8538283 0.8479835 0.8536269 0.8475765 0.8576011
+# [15] 0.8656511 0.8567254 0.8488735 0.8534738 0.8581791 0.8561511 0.8521282
+# [22] 0.8624326 0.8663652 0.8508699 0.8630147 0.8537562 0.8584319 0.8539573
+# [29] 0.8442653 0.8552314
 
 
 # stats
@@ -212,7 +203,7 @@ stats_plot <- rbind.data.frame(stats_group(auc_vector = auc_30_1, roc_auc_result
                  stats_group(auc_vector = auc_2_15, roc_auc_results)) |>
   dplyr::mutate(bags = c(1, 5, 10, 15))
 
-# saveRDS(object = stats_plot, file = 'stats_plot.rds')
+# saveRDS(object = stats_plot, file = 'outputs/stats_plot.rds')
 # stats_plot <- readRDS(file = 'outputs/stats_plot.rds')
 
 ggplot2::ggplot(data = stats_plot, ggplot2::aes(x = bags, y = mean)) +

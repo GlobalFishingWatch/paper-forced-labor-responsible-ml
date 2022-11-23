@@ -134,7 +134,7 @@ parallel_plan <- "multicore" # multisession if running from RStudio, or
 if (parallel_plan == "multisession"){
   utils::globalVariables("multisession")
 }
-free_cores <- 1 # add more if you need to do many things at the same time
+free_cores <- 4 # add more if you need to do many things at the same time
 
 
 ## CROSS VALIDATION ##
@@ -187,6 +187,8 @@ classif_res <- forcedlabor::ml_classification(data = train_pred_proba,
                                               free_cores = free_cores)
 tictoc::toc()
 
+# [1] "alpha:  0.282282282282282"
+
 
 ########### Recall and specificity #################################################
 
@@ -199,7 +201,8 @@ tictoc::toc()
 # 1 0.8888889 0.9811321
 
 alpha <- classif_res$alpha
-# [1] 0.2832833
+# [1] 0.2822823
+
 
 ########### Predictions ############################
 
@@ -212,12 +215,12 @@ predictions <- classif_res |>
   dplyr::group_by(prediction) |>
   dplyr::summarise(N = dplyr::n())
 
-# predictions
 # # A tibble: 2 × 2
 # prediction     N
 # <chr>      <int>
-#   1 Negative   77574
-# 2 Positive   29807
+# 1 Negative   77647
+# 2 Positive   29734
+
 
 
 
@@ -240,14 +243,15 @@ predictions_gear <- classif_res |>
 # # Groups:   prediction [2]
 # prediction gear                   N
 # <chr>      <fct>              <int>
-#   1 Negative   drifting_longlines  4281
-# 2 Negative   purse_seines        1986
-# 3 Negative   squid_jigger         436
-# 4 Negative   trawlers           70871
-# 5 Positive   drifting_longlines 16646
-# 6 Positive   purse_seines        3331
-# 7 Positive   squid_jigger        5600
-# 8 Positive   trawlers            4230
+#   1 Negative   drifting_longlines  4349
+# 2 Negative   purse_seines        1982
+# 3 Negative   squid_jigger         429
+# 4 Negative   trawlers           70887
+# 5 Positive   drifting_longlines 16578
+# 6 Positive   purse_seines        3335
+# 7 Positive   squid_jigger        5607
+# 8 Positive   trawlers            4214
+
 
 
 # Predictions by region
@@ -263,10 +267,11 @@ predictions_region <- classif_res |>
 # # Groups:   prediction [2]
 # prediction flag_region     N
 # <chr>      <chr>       <int>
-#   1 Negative   Asia         5276
-# 2 Negative   Other       72298
-# 3 Positive   Asia        20082
-# 4 Positive   Other        9725
+#   1 Negative   Asia         5306
+# 2 Negative   Other       72341
+# 3 Positive   Asia        20052
+# 4 Positive   Other        9682
+
 
 
 # Predictions by gear-region
@@ -282,22 +287,22 @@ predictions_gear_region <- classif_res |>
 # # Groups:   prediction, gear [8]
 # prediction gear               flag_region     N
 # <chr>      <fct>              <chr>       <int>
-#   1 Negative   drifting_longlines Asia         1257
-# 2 Negative   drifting_longlines Other        3024
+#   1 Negative   drifting_longlines Asia         1288
+# 2 Negative   drifting_longlines Other        3061
 # 3 Negative   purse_seines       Asia          143
-# 4 Negative   purse_seines       Other        1843
-# 5 Negative   squid_jigger       Asia          126
-# 6 Negative   squid_jigger       Other         310
-# 7 Negative   trawlers           Asia         3750
-# 8 Negative   trawlers           Other       67121
-# 9 Positive   drifting_longlines Asia        11623
-# 10 Positive   drifting_longlines Other        5023
+# 4 Negative   purse_seines       Other        1839
+# 5 Negative   squid_jigger       Asia          128
+# 6 Negative   squid_jigger       Other         301
+# 7 Negative   trawlers           Asia         3747
+# 8 Negative   trawlers           Other       67140
+# 9 Positive   drifting_longlines Asia        11592
+# 10 Positive   drifting_longlines Other        4986
 # 11 Positive   purse_seines       Asia          941
-# 12 Positive   purse_seines       Other        2390
-# 13 Positive   squid_jigger       Asia         5109
-# 14 Positive   squid_jigger       Other         491
-# 15 Positive   trawlers           Asia         2409
-# 16 Positive   trawlers           Other        1821
+# 12 Positive   purse_seines       Other        2394
+# 13 Positive   squid_jigger       Asia         5107
+# 14 Positive   squid_jigger       Other         500
+# 15 Positive   trawlers           Asia         2412
+# 16 Positive   trawlers           Other        1802
 
 
 ########### Confidence levels ##########################
@@ -317,8 +322,9 @@ predictions |> dplyr::left_join(count_conf, by = "prediction") |>
 # # A tibble: 2 × 4
 # prediction     N     n  prop
 # <chr>      <int> <int> <dbl>
-#   1 Negative   77574 74822 0.965
-# 2 Positive   29807 26633 0.894
+#   1 Negative   77647 74859 0.964
+# 2 Positive   29734 26475 0.890
+
 
 
 classif_res |>
@@ -335,14 +341,15 @@ classif_res |>
 # # Groups:   prediction [2]
 # prediction gear                   n     N  prop
 # <chr>      <fct>              <int> <int> <dbl>
-#   1 Negative   drifting_longlines  3332  4281 0.778
-# 2 Negative   purse_seines        1836  1986 0.924
-# 3 Negative   squid_jigger         237   436 0.544
-# 4 Negative   trawlers           69417 70871 0.979
-# 5 Positive   drifting_longlines 15393 16646 0.925
-# 6 Positive   purse_seines        2970  3331 0.892
-# 7 Positive   squid_jigger        5307  5600 0.948
-# 8 Positive   trawlers            2963  4230 0.700
+#   1 Negative   drifting_longlines  3359  4349 0.772
+# 2 Negative   purse_seines        1824  1982 0.920
+# 3 Negative   squid_jigger         231   429 0.538
+# 4 Negative   trawlers           69445 70887 0.980
+# 5 Positive   drifting_longlines 15297 16578 0.923
+# 6 Positive   purse_seines        2953  3335 0.885
+# 7 Positive   squid_jigger        5305  5607 0.946
+# 8 Positive   trawlers            2920  4214 0.693
+
 
 
 classif_res |>
@@ -359,10 +366,11 @@ classif_res |>
 # # Groups:   prediction [2]
 # prediction flag_region     n     N  prop
 # <chr>      <chr>       <int> <int> <dbl>
-#   1 Negative   Asia         4298  5276 0.815
-# 2 Negative   Other       70524 72298 0.975
-# 3 Positive   Asia        18610 20082 0.927
-# 4 Positive   Other        8023  9725 0.825
+#   1 Negative   Asia         4310  5306 0.812
+# 2 Negative   Other       70549 72341 0.975
+# 3 Positive   Asia        18534 20052 0.924
+# 4 Positive   Other        7941  9682 0.820
+
 
 
 classif_res |>
@@ -379,22 +387,22 @@ classif_res |>
 # # Groups:   prediction, gear [8]
 # prediction gear               flag_region     n     N  prop
 # <chr>      <fct>              <chr>       <int> <int> <dbl>
-#   1 Negative   drifting_longlines Asia          806  1257 0.641
-# 2 Negative   drifting_longlines Other        2526  3024 0.835
-# 3 Negative   purse_seines       Asia          112   143 0.783
-# 4 Negative   purse_seines       Other        1724  1843 0.935
-# 5 Negative   squid_jigger       Asia           96   126 0.762
-# 6 Negative   squid_jigger       Other         141   310 0.455
-# 7 Negative   trawlers           Asia         3284  3750 0.876
-# 8 Negative   trawlers           Other       66133 67121 0.985
-# 9 Positive   drifting_longlines Asia        10957 11623 0.943
-# 10 Positive   drifting_longlines Other        4436  5023 0.883
-# 11 Positive   purse_seines       Asia          823   941 0.875
-# 12 Positive   purse_seines       Other        2147  2390 0.898
-# 13 Positive   squid_jigger       Asia         5019  5109 0.982
-# 14 Positive   squid_jigger       Other         288   491 0.587
-# 15 Positive   trawlers           Asia         1811  2409 0.752
-# 16 Positive   trawlers           Other        1152  1821 0.633
+#   1 Negative   drifting_longlines Asia          821  1288 0.637
+# 2 Negative   drifting_longlines Other        2538  3061 0.829
+# 3 Negative   purse_seines       Asia          111   143 0.776
+# 4 Negative   purse_seines       Other        1713  1839 0.931
+# 5 Negative   squid_jigger       Asia           95   128 0.742
+# 6 Negative   squid_jigger       Other         136   301 0.452
+# 7 Negative   trawlers           Asia         3283  3747 0.876
+# 8 Negative   trawlers           Other       66162 67140 0.985
+# 9 Positive   drifting_longlines Asia        10907 11592 0.941
+# 10 Positive   drifting_longlines Other        4390  4986 0.880
+# 11 Positive   purse_seines       Asia          813   941 0.864
+# 12 Positive   purse_seines       Other        2140  2394 0.894
+# 13 Positive   squid_jigger       Asia         5016  5107 0.982
+# 14 Positive   squid_jigger       Other         289   500 0.578
+# 15 Positive   trawlers           Asia         1798  2412 0.745
+# 16 Positive   trawlers           Other        1122  1802 0.623
 
 
 ######### Fairness (recall) ########################################

@@ -116,17 +116,19 @@ tictoc::toc()
 tictoc::tic()
 best_hyperparameters <- forcedlabor::ml_hyperpar(train_pred_proba)
 tictoc::toc()
-stats_plot <- best_hyperparameters$best_hyperparameters
+stats_plot <- best_hyperparameters$auc_results
+# saveRDS(object = stats_plot, file = "./outputs/stats_hyper_plot.rds")
 # stats_plot <- readRDS(file = 'outputs/stats_hyper_plot.rds')
 
 stats_plot <- stats_plot |>
   dplyr::select(mtry, min_n, regularization.factor, mean_performance)
+# wite in a csv for python
+readr::write_csv(x = stats_plot, file = "./outputs/hyper_data.csv")
 
 ### Graphs showing best hyperpar combination
 # Set Python to python3
 reticulate::use_python("/usr/bin/python3", required = TRUE)
 # generate graphs fixing the optimal points
-data <- stats_plot
 reticulate::source_python("./scripts/hyper_plot.py")
 
 

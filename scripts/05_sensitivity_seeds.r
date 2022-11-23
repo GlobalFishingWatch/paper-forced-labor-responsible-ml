@@ -140,6 +140,8 @@ perf_15_1 <- forcedlabor::ml_perf_metrics(data = classif_res$pred_conf)
 
 perf_15_1$alpha <- classif_res$alpha
 
+# saveRDS(object = perf_15_1, file = paste0('./outputs/perf_15_1.rds'))
+
 ############# FUNCTIONS FOR GROUPS ########################################
 
 # classification for each group of seeds
