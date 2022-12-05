@@ -1,9 +1,21 @@
 
 training_df <- readr::read_rds(file = "./outputs/training.rds")
+# we don't train with known_offenders, so it doesn't have level 1 in known_non_offender
+levels(training_df$known_non_offender) <- c(levels(training_df$known_non_offender),1)
+
 prediction_df <- readr::read_rds(file = "./outputs/prediction.rds")
-# col_factor <- c("known_offender", "source_id", "gear", "ais_type", "foc")
-# training_repro[col_factor] <- lapply(training_repro[col_factor], factor)
+# we only have known_offenders in the prediction dataset, so it doesn't have level 0 in known_non_offender
+levels(prediction_df$known_non_offender) <- c(levels(prediction_df$known_non_offender),0)
+
 whole_df <- rbind.data.frame(training_df, prediction_df)
+
+########## GENERATING FIGURE 1 (now a table) ###########
+
+training_df |>
+  dplyr::filter(known_offender == 1) |>
+  dplyr::group_by(flag) |>
+  dplyr::summarise(n = dplyr::n()) |>
+  dplyr::arrange(dplyr::desc(n))
 
 ########## GENERATING TABLE 1 #############
 
@@ -57,9 +69,6 @@ whole_df |>
 
 
 
-############### NOW MAKING SURE THAT THE MODEL RUNS WITH THIS FORMAT OF #####
-######################## TRAINING DATA #######################################
-
 ################## writing the recipe ##########################################
 
 fl_rec <- recipes::recipe(known_offender ~ .,
@@ -83,32 +92,28 @@ fl_rec <- recipes::recipe(known_offender ~ .,
 
 ######### specifying the model #################################################
 
-# RF with hyperparameters to tune
+# RF with hyperparameters based on sensitivity_hyper.r results
 rf_spec <-
   # type of model # if no tuning # rand_forest()
   parsnip::rand_forest(trees = 500,
                        # We will tune these two hyperparameters
-                       mtry = tune(),
-                       min_n = tune()) |>
+                       mtry = 1,
+                       min_n = 15) |>
   # mode
   parsnip::set_mode("classification") |>
   # engine/package
-  parsnip::set_engine("ranger", regularization.factor = tune())
+  parsnip::set_engine("ranger", regularization.factor = 0.5)
 
 
 
 ########### training and testing scheme ########################################
 
-## defining some parameter values ##
-num_folds <- 2 # number of folds SHOULD BE 5
-num_bags <- 5 #10,20,30,50,100 # Keep this low for now for speed,
-# but can crank up later
+## defining some parameter values based on sensitivity results
+num_folds <- 5
+num_bags <- 10
 down_sample_ratio <- 1 # downsampling ratio
 # Set common seed to use anywhere that uses random numbers
-# We'll vary this to get confidence intervals
-# Eventually we can crank this up (16,32,64), but keep it to 2 for now for
-# testing
-num_common_seeds <- 2
+num_common_seeds <- 3
 common_seed_tibble <- tibble::tibble(common_seed =
                                        seq(1:num_common_seeds) * 101)
 
@@ -129,7 +134,7 @@ parallel_plan <- "multicore" # multisession if running from RStudio, or
 if (parallel_plan == "multisession"){
   utils::globalVariables("multisession")
 }
-free_cores <- 1 # add more if you need to do many things at the same time
+free_cores <- 4 # add more if you need to do many things at the same time
 
 
 ## CROSS VALIDATION ##
@@ -154,45 +159,17 @@ if (!require("forcedlabor")) {
 }
 
 
-### FIRST TRAINING STAGE ###
+### training and prediction (scores)
 
 tictoc::tic()
-train_pred_proba <- forcedlabor::ml_training(training_df = training_df,
-                                             fl_rec = fl_rec,
+train_pred_proba <- forcedlabor::ml_train_predict(fl_rec = fl_rec,
                                              rf_spec = rf_spec,
                                              cv_splits_all = cv_splits_all,
                                              bag_runs = bag_runs,
                                              down_sample_ratio = down_sample_ratio,
-                                             num_grid = 2,
                                              parallel_plan = parallel_plan,
-                                             free_cores = free_cores)
-tictoc::toc()
-
-
-
-###### finding the optimal threshold and hyperparameters #########
-
-tictoc::tic()
-best_hyperparameters <- forcedlabor::ml_hyperpar(train_pred_proba)
-# write_csv(best_hyperparameters,here::here("outputs/stats",
-# "best_hyperpar.csv"))
-tictoc::toc()
-
-
-
-####### Frankenstraining ########################################
-
-tictoc::tic()
-cv_model_res <- forcedlabor::ml_frankenstraining(training_df = training_df,
-                                                 fl_rec = fl_rec,
-                                                 rf_spec = rf_spec,
-                                                 cv_splits_all = cv_splits_all,
-                                                 bag_runs = bag_runs,
-                                                 down_sample_ratio = down_sample_ratio,
-                                                 parallel_plan = parallel_plan,
-                                                 free_cores = free_cores,
-                                                 best_hyperparameters = best_hyperparameters,
-                                                 prediction_df = prediction_df)
+                                             free_cores = free_cores,
+                                             prediction_df = prediction_df)
 tictoc::toc()
 
 
@@ -200,27 +177,41 @@ tictoc::toc()
 # alpha value will be printed
 
 tictoc::tic()
-classif_res <- forcedlabor::ml_classification(data = cv_model_res, common_seed_tibble,
+classif_res <- forcedlabor::ml_classification(data = train_pred_proba,
                                               steps = 1000, plotting = FALSE,
                                               filepath = NULL,
-                                              threshold = seq(0, .99, by = 0.01), eps = 0.01)
+                                              threshold = seq(0, .99, by = 0.01),
+                                              eps = 0.01,
+                                              parallel_plan = parallel_plan,
+                                              free_cores = free_cores)
 tictoc::toc()
+
+# [1] "alpha:  0.282282282282282"
 
 
 ########### Recall and specificity #################################################
 
 tictoc::tic()
-perf_metrics <- forcedlabor::ml_perf_metrics(data = classif_res)
+perf_metrics <- forcedlabor::ml_perf_metrics(data = classif_res$pred_conf)
 tictoc::toc()
 #
-# > perf_metrics
-# recall specif
-# 1 0.8888889      1
+# perf_metrics
+# recall    specif
+# 1 0.8888889 0.9811321
 
+alpha <- classif_res$alpha
+# [1] 0.2822823
 
+# Gavin's results on MacOS 13.0.1, R 4.2.2
+# [1] "alpha:  0.282282282282282"
+# perf_metrics
+# 1 0.8888889 0.9811321
+#> alpha
+# [1] 0.2872873
 
 ########### Predictions ############################
 
+classif_res <- classif_res$pred_conf
 
 predictions <- classif_res |>
   dplyr::mutate(prediction =
@@ -229,12 +220,13 @@ predictions <- classif_res |>
   dplyr::group_by(prediction) |>
   dplyr::summarise(N = dplyr::n())
 
-# > predictions
 # # A tibble: 2 × 2
 # prediction     N
 # <chr>      <int>
-#   1 Negative   78656
-# 2 Positive   28725
+# 1 Negative   77647
+# 2 Positive   29734
+
+
 
 
 classif_res <- classif_res |>
@@ -256,14 +248,16 @@ predictions_gear <- classif_res |>
 # # Groups:   prediction [2]
 # prediction gear                   N
 # <chr>      <fct>              <int>
-#   1 Negative   drifting_longlines  5056
-# 2 Negative   purse_seines        1979
-# 3 Negative   squid_jigger         362
-# 4 Negative   trawlers           71259
-# 5 Positive   drifting_longlines 15871
-# 6 Positive   purse_seines        3338
-# 7 Positive   squid_jigger        5674
-# 8 Positive   trawlers            3842
+#   1 Negative   drifting_longlines  4349
+# 2 Negative   purse_seines        1982
+# 3 Negative   squid_jigger         429
+# 4 Negative   trawlers           70887
+# 5 Positive   drifting_longlines 16578
+# 6 Positive   purse_seines        3335
+# 7 Positive   squid_jigger        5607
+# 8 Positive   trawlers            4214
+
+
 
 # Predictions by region
 
@@ -278,10 +272,11 @@ predictions_region <- classif_res |>
 # # Groups:   prediction [2]
 # prediction flag_region     N
 # <chr>      <chr>       <int>
-#   1 Negative   Asia         5980
-# 2 Negative   Other       72676
-# 3 Positive   Asia        19378
-# 4 Positive   Other        9347
+#   1 Negative   Asia         5306
+# 2 Negative   Other       72341
+# 3 Positive   Asia        20052
+# 4 Positive   Other        9682
+
 
 
 # Predictions by gear-region
@@ -297,22 +292,22 @@ predictions_gear_region <- classif_res |>
 # # Groups:   prediction, gear [8]
 # prediction gear               flag_region     N
 # <chr>      <fct>              <chr>       <int>
-#   1 Negative   drifting_longlines Asia         1802
-# 2 Negative   drifting_longlines Other        3254
-# 3 Negative   purse_seines       Asia          124
-# 4 Negative   purse_seines       Other        1855
-# 5 Negative   squid_jigger       Asia          100
-# 6 Negative   squid_jigger       Other         262
-# 7 Negative   trawlers           Asia         3954
-# 8 Negative   trawlers           Other       67305
-# 9 Positive   drifting_longlines Asia        11078
-# 10 Positive   drifting_longlines Other        4793
-# 11 Positive   purse_seines       Asia          960
-# 12 Positive   purse_seines       Other        2378
-# 13 Positive   squid_jigger       Asia         5135
-# 14 Positive   squid_jigger       Other         539
-# 15 Positive   trawlers           Asia         2205
-# 16 Positive   trawlers           Other        1637
+#   1 Negative   drifting_longlines Asia         1288
+# 2 Negative   drifting_longlines Other        3061
+# 3 Negative   purse_seines       Asia          143
+# 4 Negative   purse_seines       Other        1839
+# 5 Negative   squid_jigger       Asia          128
+# 6 Negative   squid_jigger       Other         301
+# 7 Negative   trawlers           Asia         3747
+# 8 Negative   trawlers           Other       67140
+# 9 Positive   drifting_longlines Asia        11592
+# 10 Positive   drifting_longlines Other        4986
+# 11 Positive   purse_seines       Asia          941
+# 12 Positive   purse_seines       Other        2394
+# 13 Positive   squid_jigger       Asia         5107
+# 14 Positive   squid_jigger       Other         500
+# 15 Positive   trawlers           Asia         2412
+# 16 Positive   trawlers           Other        1802
 
 
 ########### Confidence levels ##########################
@@ -332,8 +327,8 @@ predictions |> dplyr::left_join(count_conf, by = "prediction") |>
 # # A tibble: 2 × 4
 # prediction     N     n  prop
 # <chr>      <int> <int> <dbl>
-#   1 Negative   78656 71696 0.912
-# 2 Positive   28725 21716 0.756
+#   1 Negative   77647 74859 0.964
+# 2 Positive   29734 26475 0.890
 
 
 
@@ -351,14 +346,15 @@ classif_res |>
 # # Groups:   prediction [2]
 # prediction gear                   n     N  prop
 # <chr>      <fct>              <int> <int> <dbl>
-#   1 Negative   drifting_longlines  2908  5056 0.575
-# 2 Negative   purse_seines        1630  1979 0.824
-# 3 Negative   squid_jigger         111   362 0.307
-# 4 Negative   trawlers           67047 71259 0.941
-# 5 Positive   drifting_longlines 12314 15871 0.776
-# 6 Positive   purse_seines        2638  3338 0.790
-# 7 Positive   squid_jigger        5261  5674 0.927
-# 8 Positive   trawlers            1503  3842 0.391
+#   1 Negative   drifting_longlines  3359  4349 0.772
+# 2 Negative   purse_seines        1824  1982 0.920
+# 3 Negative   squid_jigger         231   429 0.538
+# 4 Negative   trawlers           69445 70887 0.980
+# 5 Positive   drifting_longlines 15297 16578 0.923
+# 6 Positive   purse_seines        2953  3335 0.885
+# 7 Positive   squid_jigger        5305  5607 0.946
+# 8 Positive   trawlers            2920  4214 0.693
+
 
 
 classif_res |>
@@ -375,10 +371,11 @@ classif_res |>
 # # Groups:   prediction [2]
 # prediction flag_region     n     N  prop
 # <chr>      <chr>       <int> <int> <dbl>
-#   1 Negative   Asia         3608  5980 0.603
-# 2 Negative   Other       68088 72676 0.937
-# 3 Positive   Asia        15525 19378 0.801
-# 4 Positive   Other        6191  9347 0.662
+#   1 Negative   Asia         4310  5306 0.812
+# 2 Negative   Other       70549 72341 0.975
+# 3 Positive   Asia        18534 20052 0.924
+# 4 Positive   Other        7941  9682 0.820
+
 
 
 classif_res |>
@@ -395,22 +392,22 @@ classif_res |>
 # # Groups:   prediction, gear [8]
 # prediction gear               flag_region     n     N  prop
 # <chr>      <fct>              <chr>       <int> <int> <dbl>
-#   1 Negative   drifting_longlines Asia          597  1802 0.331
-# 2 Negative   drifting_longlines Other        2311  3254 0.710
-# 3 Negative   purse_seines       Asia           94   124 0.758
-# 4 Negative   purse_seines       Other        1536  1855 0.828
-# 5 Negative   squid_jigger       Asia           59   100 0.59
-# 6 Negative   squid_jigger       Other          52   262 0.198
-# 7 Negative   trawlers           Asia         2858  3954 0.723
-# 8 Negative   trawlers           Other       64189 67305 0.954
-# 9 Positive   drifting_longlines Asia         8997 11078 0.812
-# 10 Positive   drifting_longlines Other        3317  4793 0.692
-# 11 Positive   purse_seines       Asia          726   960 0.756
-# 12 Positive   purse_seines       Other        1912  2378 0.804
-# 13 Positive   squid_jigger       Asia         5032  5135 0.980
-# 14 Positive   squid_jigger       Other         229   539 0.425
-# 15 Positive   trawlers           Asia          770  2205 0.349
-# 16 Positive   trawlers           Other         733  1637 0.448
+#   1 Negative   drifting_longlines Asia          821  1288 0.637
+# 2 Negative   drifting_longlines Other        2538  3061 0.829
+# 3 Negative   purse_seines       Asia          111   143 0.776
+# 4 Negative   purse_seines       Other        1713  1839 0.931
+# 5 Negative   squid_jigger       Asia           95   128 0.742
+# 6 Negative   squid_jigger       Other         136   301 0.452
+# 7 Negative   trawlers           Asia         3283  3747 0.876
+# 8 Negative   trawlers           Other       66162 67140 0.985
+# 9 Positive   drifting_longlines Asia        10907 11592 0.941
+# 10 Positive   drifting_longlines Other        4390  4986 0.880
+# 11 Positive   purse_seines       Asia          813   941 0.864
+# 12 Positive   purse_seines       Other        2140  2394 0.894
+# 13 Positive   squid_jigger       Asia         5016  5107 0.982
+# 14 Positive   squid_jigger       Other         289   500 0.578
+# 15 Positive   trawlers           Asia         1798  2412 0.745
+# 16 Positive   trawlers           Other        1122  1802 0.623
 
 
 ######### Fairness (recall) ########################################
@@ -419,57 +416,56 @@ classif_res |>
 
 classif_res |>
   dplyr::group_by(gear) |>
-  yardstick::recall(truth = factor(.data$known_offender,
+  yardstick::recall(truth = factor(known_offender,
                                    levels = c(1, 0)),
-                    estimate = factor(.data$pred_class,
+                    estimate = factor(pred_class,
                                       levels = c(1, 0))) |>
-  dplyr::select(gear, .data$.estimate)
-
+  dplyr::select(gear, .estimate)
 
 # # A tibble: 4 × 2
 # gear               .estimate
 # <fct>                  <dbl>
 #   1 drifting_longlines     1
-# 2 purse_seines           0.857
+# 2 purse_seines           0.714
 # 3 squid_jigger           1
-# 4 trawlers               0.364
+# 4 trawlers               0.455
 
 
 # by flag_region
 
 classif_res |>
   dplyr::group_by(flag_region) |>
-  yardstick::recall(truth = factor(.data$known_offender,
+  yardstick::recall(truth = factor(known_offender,
                                    levels = c(1, 0)),
-                    estimate = factor(.data$pred_class,
+                    estimate = factor(pred_class,
                                       levels = c(1, 0))) |>
-  dplyr::select(flag_region, .data$.estimate)
+  dplyr::select(flag_region, .estimate)
 
 # # A tibble: 2 × 2
 # flag_region .estimate
 # <chr>           <dbl>
-#   1 Asia            0.898
-# 2 Other           0.846
+#   1 Asia            0.881
+# 2 Other           0.923
 
 
 # by gear and flag_region
 
 classif_res |>
   dplyr::group_by(gear, flag_region) |>
-  yardstick::recall(truth = factor(.data$known_offender,
+  yardstick::recall(truth = factor(known_offender,
                                    levels = c(1, 0)),
-                    estimate = factor(.data$pred_class,
+                    estimate = factor(pred_class,
                                       levels = c(1, 0))) |>
-  dplyr::select(gear, flag_region, .data$.estimate)
-#
+  dplyr::select(gear, flag_region, .estimate)
+# #
 # # A tibble: 8 × 3
 # gear               flag_region .estimate
 # <fct>              <chr>           <dbl>
 #   1 drifting_longlines Asia            1
 # 2 drifting_longlines Other           1
-# 3 purse_seines       Asia            0.833
+# 3 purse_seines       Asia            0.667
 # 4 purse_seines       Other           1
 # 5 squid_jigger       Asia            1
 # 6 squid_jigger       Other          NA
 # 7 trawlers           Asia            0.444
-# 8 trawlers           Other           0
+# 8 trawlers           Other           0.5
