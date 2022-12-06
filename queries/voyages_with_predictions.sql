@@ -2,7 +2,7 @@
   -- G. McDonald, November 17, 2022
   -- Summarize the number of voyages by year, from_anchorage_label, to_anchorage_label, and class prediction
   -----------------------------------------
-  #standardSQL
+#standardSQL
 WITH
   -----------------------------------------
   -- Summarize number of voyages, by ssvid, year, and to/from countries
@@ -28,9 +28,9 @@ WITH
   SELECT
     ssvid,
     year,
-    class_mode
+    pred_class
   FROM
-    `world-fishing-827.prj_forced_labor.pred_stats_per_vessel_year_dev_2021` ),
+    `world-fishing-827.prj_forced_labor.pred_stats_per_vessel_year_paper` ),
   from_port_locations AS(
   SELECT
     s2id from_anchorage_id,
@@ -70,7 +70,7 @@ WITH
   USING
     (to_anchorage_id))
 SELECT
-  class_mode,
+  pred_class,
   year,
   from_anchorage_label,
   from_anchorage_sublabel,
@@ -86,7 +86,7 @@ SELECT
 FROM
   joined
 GROUP BY
-  class_mode,
+  pred_class,
   year,
   from_anchorage_label,
   from_anchorage_sublabel,
