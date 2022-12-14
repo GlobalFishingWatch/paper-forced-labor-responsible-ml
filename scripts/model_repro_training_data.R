@@ -1,3 +1,10 @@
+########## Notes on operating system, environment, and hardware
+## This analysis has been run on two machines. We include both sets of results for reproducibility
+## Throughout the code, we include the results and elapsed times for both systems using tags for either "Linux" or "Mac"
+## Here are details about two systems:
+## Linux: Rocio to fill in
+## Mac: MacOS 13.0.1; R 4.2.2; 2021 MacBook Pro with M1 Max processor, 64GB RAM, 10 computing cores
+
 training_repro <- readr::read_rds(file = "./data/training_repro.rds")
 # we don't train with known_offenders, so it doesn't have level 1 in known_non_offender
 training_repro$known_non_offender <- factor (training_repro$known_non_offender, levels = c(0,1))
@@ -82,7 +89,7 @@ bag_runs <- common_seed_tibble |>
   dplyr::mutate(counter = dplyr::row_number())
 
 ## parallelization strategy
-parallel_plan <- "multicore" # multisession if running from RStudio, or
+parallel_plan <- "multisession" # multisession if running from RStudio, or
 # multicore if from Linux, Mac and plain R, or
 # psock if multisession is not working well and you need to try something else
 if (parallel_plan == "multisession"){
@@ -132,6 +139,8 @@ train_pred_proba <- forcedlabor::ml_train_predict(fl_rec = fl_rec,
                                                   prediction_df = NULL)
 tictoc::toc()
 
+## Mac: 554.75 sec elapsed
+## Linux: Rocio to fill in
 
 ####### Classification with dedpul ########################################
 ## Using the predictions for each random seed, CV split, and bag,
@@ -149,25 +158,30 @@ classif_res <- forcedlabor::ml_classification(data = train_pred_proba,
                                               parallel_plan = parallel_plan, free_cores = free_cores)
 tictoc::toc()
 
+## Mac: 638.825 sec elapsed
+## Linux: Rocio to fill in
 
 ########### Recall #################################################
 ## Calculate recall using the predictions
 recall_res <-  forcedlabor::ml_recall(data = classif_res$pred_conf)
+
+## Linux:
 # recall_res
 # [1] 0.8888889
 
+## Mac:
+# recall_res
+# [1] 0.8888889
 
 alpha <- classif_res$alpha
+
+## Linux:
 # alpha
 # [1] "alpha:  0.282282282282282"
 
-# Gavin's results on MacOS 13.0.1, R 4.2.2
-# [1] "alpha:  0.282282282282282"
-# > recall_res
-# [1] 0.8888889
-#> alpha
-# [1] 0.2872873
-
+## Mac:
+# alpha
+# [1] "alpha: 0.2872873
 
 ########### Predictions ############################
 ## Summarize the predictions
@@ -183,6 +197,7 @@ predictions <- classif_res |>
   dplyr::group_by(prediction) |>
   dplyr::summarise(N = dplyr::n())
 
+## Linux:
 # > predictions
 # # A tibble: 2 × 2
 # prediction     N
@@ -190,7 +205,13 @@ predictions <- classif_res |>
 #   1 Negative   77595
 # 2 Positive   29733
 
-
+## Mac:
+# > predictions
+# # A tibble: 2 × 2
+# prediction     N
+# <chr>      <int>
+#   1 Negative   76968
+# 2 Positive   30360
 
 
 classif_res <- classif_res |>
@@ -209,6 +230,7 @@ predictions_gear <- classif_res |>
   dplyr::summarise(N = dplyr::n()) |>
   dplyr::ungroup()
 
+## Linux:
 # # A tibble: 8 × 3
 # prediction gear                   N
 # <chr>      <fct>              <int>
@@ -221,6 +243,20 @@ predictions_gear <- classif_res |>
 # 7 Positive   squid_jigger        5607
 # 8 Positive   trawlers            4213
 
+## Mac:
+# > predictions_gear
+# # A tibble: 8 × 3
+# prediction gear                   N
+# <chr>      <fct>              <int>
+#   1 Negative   drifting_longlines  4065
+# 2 Negative   purse_seines        1942
+# 3 Negative   squid_jigger         366
+# 4 Negative   trawlers           70595
+# 5 Positive   drifting_longlines 16862
+# 6 Positive   purse_seines        3375
+# 7 Positive   squid_jigger        5670
+# 8 Positive   trawlers            4453
+
 
 # Predictions by region
 
@@ -232,6 +268,7 @@ predictions_region <- classif_res |>
   dplyr::summarise(N = dplyr::n()) |>
   dplyr::ungroup()
 
+## Linux:
 # # A tibble: 4 × 3
 # prediction flag_region     N
 # <chr>      <chr>       <int>
@@ -240,6 +277,15 @@ predictions_region <- classif_res |>
 # 3 Positive   Asia        20052
 # 4 Positive   Other        9681
 
+## Mac:
+# > predictions_region
+# # A tibble: 4 × 3
+# prediction flag_region     N
+# <chr>      <chr>       <int>
+#   1 Negative   Asia         5076
+# 2 Negative   Other       71892
+# 3 Positive   Asia        20282
+# 4 Positive   Other       10078
 
 # Predictions by gear-region
 
@@ -251,6 +297,7 @@ predictions_gear_region <- classif_res |>
   dplyr::summarise(N = dplyr::n()) |>
   dplyr::ungroup()
 
+## Linux:
 # # A tibble: 16 × 4
 # prediction gear               flag_region     N
 # <chr>      <fct>              <chr>       <int>
@@ -271,6 +318,27 @@ predictions_gear_region <- classif_res |>
 # 15 Positive   trawlers           Asia         2412
 # 16 Positive   trawlers           Other        1801
 
+## Mac:
+# > predictions_gear_region
+# # A tibble: 16 × 4
+# prediction gear               flag_region     N
+# <chr>      <fct>              <chr>       <int>
+#   1 Negative   drifting_longlines Asia         1149
+# 2 Negative   drifting_longlines Other        2916
+# 3 Negative   purse_seines       Asia          132
+# 4 Negative   purse_seines       Other        1810
+# 5 Negative   squid_jigger       Asia          115
+# 6 Negative   squid_jigger       Other         251
+# 7 Negative   trawlers           Asia         3680
+# 8 Negative   trawlers           Other       66915
+# 9 Positive   drifting_longlines Asia        11731
+# 10 Positive   drifting_longlines Other        5131
+# 11 Positive   purse_seines       Asia          952
+# 12 Positive   purse_seines       Other        2423
+# 13 Positive   squid_jigger       Asia         5120
+# 14 Positive   squid_jigger       Other         550
+# 15 Positive   trawlers           Asia         2479
+# 16 Positive   trawlers           Other        1974
 
 ########### Confidence levels ##########################
 
@@ -284,25 +352,40 @@ count_conf <- classif_res |>
   dplyr::summarise(n = dplyr::n()) |>
   dplyr::ungroup()
 
+## Linux:
 # # A tibble: 2 × 2
 # prediction     n
 # <chr>      <int>
 #   1 Negative   74807
 # 2 Positive   26475
 
+## Mac:
+# > count_conf
+# # A tibble: 2 × 2
+# prediction     n
+# <chr>      <int>
+#   1 Negative   74198
+# 2 Positive   27139
+
 predictions |>
   dplyr::left_join(count_conf, by = "prediction") |>
   dplyr::mutate(prop = n/N)
 
+## Linux:
 # # A tibble: 2 × 4
 # prediction     N     n  prop
 # <chr>      <int> <int> <dbl>
 #   1 Negative   77595 74807 0.964
 # 2 Positive   29733 26475 0.890
 
-
+## Mac: \
+# prediction     N     n  prop
+# <chr>      <int> <int> <dbl>
+#   1 Negative   76968 74198 0.964
+# 2 Positive   30360 27139 0.894
 
 ## Summarize prediction classes, by gear, where we have at least 80% confidence
+
 classif_res |>
   dplyr::mutate(prediction =
                   dplyr::case_when(pred_class == 1 ~ "Positive",
@@ -314,6 +397,7 @@ classif_res |>
   dplyr::left_join(predictions_gear, by = c("prediction", "gear")) |>
   dplyr::mutate(prop = n/N)
 
+## Linux:
 # # A tibble: 8 × 5
 # prediction gear                   n     N  prop
 # <chr>      <fct>              <int> <int> <dbl>
@@ -326,6 +410,18 @@ classif_res |>
 # 7 Positive   squid_jigger        5305  5607 0.946
 # 8 Positive   trawlers            2920  4213 0.693
 
+## Mac:
+# # A tibble: 8 × 5
+# prediction gear                   n     N  prop
+# <chr>      <fct>              <int> <int> <dbl>
+#   1 Negative   drifting_longlines  3161  4065 0.778
+# 2 Negative   purse_seines        1800  1942 0.927
+# 3 Negative   squid_jigger         200   366 0.546
+# 4 Negative   trawlers           69037 70595 0.978
+# 5 Positive   drifting_longlines 15612 16862 0.926
+# 6 Positive   purse_seines        3045  3375 0.902
+# 7 Positive   squid_jigger        5382  5670 0.949
+# 8 Positive   trawlers            3100  4453 0.696
 
 
 
@@ -341,6 +437,7 @@ classif_res |>
   dplyr::left_join(predictions_region, by = c("prediction", "flag_region")) |>
   dplyr::mutate(prop = n/N)
 
+## Linux:
 # # A tibble: 4 × 5
 # prediction flag_region     n     N  prop
 # <chr>      <chr>       <int> <int> <dbl>
@@ -349,6 +446,14 @@ classif_res |>
 # 3 Positive   Asia        18534 20052 0.924
 # 4 Positive   Other        7941  9681 0.820
 
+## Mac:
+# A tibble: 4 × 5
+# prediction flag_region     n     N  prop
+# <chr>      <chr>       <int> <int> <dbl>
+#   1 Negative   Asia         4143  5076 0.816
+# 2 Negative   Other       70055 71892 0.974
+# 3 Positive   Asia        18848 20282 0.929
+# 4 Positive   Other        8291 10078 0.823
 
 
 ## Summarize prediction classes, by gear and region, where we have at least 80% confidence
@@ -363,6 +468,7 @@ classif_res |>
   dplyr::left_join(predictions_gear_region, by = c("prediction", "gear", "flag_region")) |>
   dplyr::mutate(prop = n/N)
 
+## Linux:
 # # A tibble: 16 × 6
 # prediction gear               flag_region     n     N  prop
 # <chr>      <fct>              <chr>       <int> <int> <dbl>
@@ -383,8 +489,26 @@ classif_res |>
 # 15 Positive   trawlers           Asia         1798  2412 0.745
 # 16 Positive   trawlers           Other        1122  1801 0.623
 
-
-
+## Mac:
+# # A tibble: 16 × 6
+# prediction gear               flag_region     n     N  prop
+# <chr>      <fct>              <chr>       <int> <int> <dbl>
+#   1 Negative   drifting_longlines Asia          740  1149 0.644
+# 2 Negative   drifting_longlines Other        2421  2916 0.830
+# 3 Negative   purse_seines       Asia          106   132 0.803
+# 4 Negative   purse_seines       Other        1694  1810 0.936
+# 5 Negative   squid_jigger       Asia           89   115 0.774
+# 6 Negative   squid_jigger       Other         111   251 0.442
+# 7 Negative   trawlers           Asia         3208  3680 0.872
+# 8 Negative   trawlers           Other       65829 66915 0.984
+# 9 Positive   drifting_longlines Asia        11075 11731 0.944
+# 10 Positive   drifting_longlines Other        4537  5131 0.884
+# 11 Positive   purse_seines       Asia          848   952 0.891
+# 12 Positive   purse_seines       Other        2197  2423 0.907
+# 13 Positive   squid_jigger       Asia         5044  5120 0.985
+# 14 Positive   squid_jigger       Other         338   550 0.615
+# 15 Positive   trawlers           Asia         1881  2479 0.759
+# 16 Positive   trawlers           Other        1219  1974 0.618
 
 ######### Fairness (recall) ########################################
 
@@ -399,6 +523,7 @@ classif_res |>
   dplyr::ungroup() |>
   dplyr::select(gear, .data$.estimate)
 
+## Linux:
 # # A tibble: 4 × 2
 # gear               .estimate
 # <fct>                  <dbl>
@@ -407,7 +532,14 @@ classif_res |>
 # 3 squid_jigger           1
 # 4 trawlers               0.455
 
-
+## Mac:
+# # A tibble: 4 × 2
+# gear               .estimate
+# <fct>                  <dbl>
+#   1 drifting_longlines     1
+# 2 purse_seines           0.714
+# 3 squid_jigger           1
+# 4 trawlers               0.455
 
 
 # by flag_region
@@ -421,13 +553,19 @@ classif_res |>
   dplyr::ungroup()  |>
   dplyr::select(flag_region, .data$.estimate)
 
+## Linux:
 # # A tibble: 2 × 2
 # flag_region .estimate
 # <chr>           <dbl>
 #   1 Asia            0.881
 # 2 Other           0.923
 
-
+## Mac:
+# A tibble: 2 × 2
+# flag_region .estimate
+# <chr>           <dbl>
+#   1 Asia            0.881
+# 2 Other           0.923
 
 # by gear and flag_region
 
@@ -440,6 +578,7 @@ classif_res |>
   dplyr::ungroup() |>
   dplyr::select(gear, flag_region, .data$.estimate)
 
+## Linux:
 # # A tibble: 8 × 3
 # gear               flag_region .estimate
 # <fct>              <chr>           <dbl>
@@ -452,5 +591,15 @@ classif_res |>
 # 7 trawlers           Asia            0.444
 # 8 trawlers           Other           0.5
 
-
-
+## Mac:
+# A tibble: 8 × 3
+# gear               flag_region .estimate
+# <fct>              <chr>           <dbl>
+#   1 drifting_longlines Asia            1
+# 2 drifting_longlines Other           1
+# 3 purse_seines       Asia            0.667
+# 4 purse_seines       Other           1
+# 5 squid_jigger       Asia            1
+# 6 squid_jigger       Other          NA
+# 7 trawlers           Asia            0.444
+# 8 trawlers           Other           0.5
