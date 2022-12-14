@@ -229,33 +229,3 @@ port_visits_number_by_port_map
 ggplot2::ggsave(here::here("figures","model_paper_port_visits_map.png"),
        port_visits_number_by_port_map,
        width=7,height=3,device="png",dpi=300, bg = 'white')
-
-
-# Summarize port-to-port voyages, by country, by positively classified vessels
-# Convert countries to World Bank 23 regions
-# Summarize voyages by region
-region_summary <- voyage_summary_with_predictions |>
-  dplyr::mutate(dplyr::across(c("from_country","to_country"), ~countrycode::countrycode(.,"iso3c","region23"))) |>
-  dplyr::group_by(from_country,to_country,class_mode) |>
-  dplyr::summarize(number_voyages = sum(number_voyages,na.rm=TRUE)) |>
-  dplyr::ungroup() |>
-  dplyr::select(from = from_country,
-                to = to_country,
-                value = number_voyages,
-                class_mode) |>
-  dplyr::filter(class_mode == "Positive") |>
-  dplyr::mutate(same_region = ifelse(from == to,"same","different"))
-
-# Summarize total number of voyages
-total_voyages <- region_summary |>
-  dplyr::pull(value) |>
-  sum()
-
-# Summarize total number of voyages to different regions
-total_voyages_same_regions <- region_summary |>
-  dplyr::filter(from ==to ) |>
-  dplyr::pull(value) |>
-  sum()
-
-# Fraction of voyages to different regions
-scales::percent(1 - total_voyages_same_regions/total_voyages)
