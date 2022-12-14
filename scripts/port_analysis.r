@@ -180,14 +180,10 @@ ports_with_predictions_combined <- voyages_with_predictions_from |>
   # Convert country code to iso3, for consistency
   dplyr::mutate(country = countrycode::countrycode(country,
                                origin = "iso3c",
-                               destination = "country.name")) |>
-  # Give anchorage a meaningful name, combining anchorage_label and country
-  dplyr::mutate(anchorage_label = stringr::str_to_sentence(anchorage_label)) |>
-  dplyr::mutate(anchorage_name = glue::glue("{anchorage_label} ({country})")) |>
-  dplyr::select(-c(anchorage_label,country))
+                               destination = "country.name"))
 
 ports_with_predictions_combined_summary <- ports_with_predictions_combined |>
-  dplyr::group_by(anchorage_name) |>
+  dplyr::group_by(anchorage_label) |>
   dplyr::summarize(number_voyages = sum(number_voyages)) |>
   dplyr::ungroup() |>
   dplyr::arrange(-number_voyages)
@@ -197,11 +193,11 @@ ports_with_predictions_combined_summary <- ports_with_predictions_combined |>
 ports_with_predictions_combined_centroids <- ports_with_predictions_combined |>
   sf::st_as_sf(coords = c("lon", "lat"),
            crs = 4326) |>
-  dplyr::group_by(anchorage_name) |>
+  dplyr::group_by(anchorage_label) |>
   dplyr::summarise(sf::st_union(geometry)) |>
   sf::st_centroid() |>
   # Add summary info for number of positive visits per port
-  dplyr::left_join(ports_with_predictions_combined_summary, by = "anchorage_name") |>
+  dplyr::left_join(ports_with_predictions_combined_summary, by = "anchorage_label") |>
   sf::st_transform(sf::st_crs(world_plotting))
 
 # Create map of port visits, filling each country based on number
