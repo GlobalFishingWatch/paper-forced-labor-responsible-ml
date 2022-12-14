@@ -18,7 +18,7 @@ options(scipen = 20)
 gfw_project <- "world-fishing-827"
 # Gavin is currently using the emlab-gcp project, since I'm not set up to bill to world-fishing-827
 # but you may eventually want to set up everything to bill world-fishing-827
-emlab_project <- "emlab-gcp"
+billing_project <- "emlab-gcp"
 
 # Define directory where SQL queries live
 query_path <- "./queries/"
@@ -30,7 +30,7 @@ all_voyages_by_ssvid_query <- readr::read_file(paste0(query_path,"all_voyages_by
 bigrquery::bq_project_query(x = gfw_project, query = all_voyages_by_ssvid_query,
                  destination_table = bigrquery::bq_table(project = gfw_project,
                                               table = "all_voyages_by_ssvid",
-                                              dataset = "scratch_rocio"),
+                                              dataset = "prj_forced_labor"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 
@@ -39,7 +39,7 @@ bigrquery::bq_project_query(x = gfw_project, query = all_voyages_by_ssvid_query,
 voyages_with_predictions_query <- readr::read_file(paste0(query_path,"voyages_with_predictions.sql"))
 
 # Run this query and store on BQ
-bigrquery::bq_project_query(x = gfw_project, query = voyages_with_predictions_query,
+bigrquery::bq_project_query(x = billing_project, query = voyages_with_predictions_query,
                  destination_table = bigrquery::bq_table(project = gfw_project,
                                               table = "voyages_with_predictions",
                                               dataset = "prj_forced_labor"),
@@ -48,7 +48,7 @@ bigrquery::bq_project_query(x = gfw_project, query = voyages_with_predictions_qu
 
 
 # Cache anchorage data to repo for plotting
-bigrquery::bq_project_query(x = gfw_project, query = "SELECT * FROM `world-fishing-827.prj_forced_labor.voyages_with_predictions`") |>
+bigrquery::bq_project_query(x = billing_project, query = "SELECT * FROM `world-fishing-827.prj_forced_labor.voyages_with_predictions`") |>
   bigrquery::bq_table_download(n_max = Inf) |>
   readr::write_csv(file=here::here("data","voyages_with_predictions.csv"))
 
