@@ -192,22 +192,6 @@ ports_with_predictions_combined_summary <- ports_with_predictions_combined |>
   dplyr::ungroup() |>
   dplyr::arrange(-number_voyages)
 
-
-# Select the top 10 ports in terms of positive voyage visits
-top_10_ports_with_positives <- ports_with_predictions_combined_summary |>
-  dplyr::slice(1:10)
-
-# Make a nice looking table of top 10 ports
-top_10_ports_with_positives |>
-  dplyr::mutate(number_voyages = prettyNum(number_voyages, big.mark = ",")) |>
-  dplyr::rename(Port = anchorage_name,
-         `Number port visits` = number_voyages) |>
-  knitr::kable() |>
-  kableExtra::kable_styling()
-
-top_10_ports_with_positives$anchorage_name |>
-  paste(collapse = ", ")
-
 # For each port, find the centroid of all lat/lon locations within the anchorage
 # Some have multiple anchorages within a port
 ports_with_predictions_combined_centroids <- ports_with_predictions_combined |>
