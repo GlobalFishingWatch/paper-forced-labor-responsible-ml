@@ -139,7 +139,7 @@ total_positive_voyages <- country_summary |>
 scales::percent(positive_voyages_within_country / total_positive_voyages)
 
 # What fraction of positive voyages occurred between different country?
-scales::percent(1 - positive_voyages_within_country / total_positive_voyages_within_country)
+scales::percent(1 - positive_voyages_within_country / total_positive_voyages)
 
 # Set mapping projection
 map_projection <- "+proj=eqearth +datum=WGS84 +wktext"
