@@ -22,21 +22,22 @@ vessels) to run the script is
 
 -   These cannot be run without access to Global Fishing Watch tables in
     Big Query.
--   The first step here is to [run
+-   First step: [Run
     queries](https://github.com/GlobalFishingWatch/forced-labor-trustability/blob/main/scripts/01_queries_premodel.r)
     to match tables of vessel information and compute movement patterns.
--   Then we
-    [process](https://github.com/GlobalFishingWatch/forced-labor-trustability/blob/main/scripts/02_format_data.r)
+-   Second step:
+    [Process](https://github.com/GlobalFishingWatch/forced-labor-trustability/blob/main/scripts/02_format_data.r)
     the data to be in the right format for the model.
--   We run sensitivity analyses for the [number of
+-   Third, fourth and fifth steps: run sensitivity analyses for the
+    [number of
     bags](https://github.com/GlobalFishingWatch/forced-labor-trustability/blob/main/scripts/03_sensitivity_bags.r),
     the [hyperparameter
     values](https://github.com/GlobalFishingWatch/forced-labor-trustability/blob/main/scripts/04_sensitivity_hyper.r)
     of the random forests, and the number of [initial random
     seeds](https://github.com/GlobalFishingWatch/forced-labor-trustability/blob/main/scripts/05_sensitivity_seeds.r).
--   We
+-   Sixth: With those optimal values,
     [run](https://github.com/GlobalFishingWatch/forced-labor-trustability/blob/main/scripts/06_model_run_non_repro.r)
     the model, do predictions, compute performance and fairness
--   For the discussion of the paper, we run an [analysis of the
+-   Seventh: Run an additional [analysis of the
     ports](https://github.com/GlobalFishingWatch/forced-labor-trustability/blob/original/scripts/07_port_analysis.r)
     used by those predicted as positives.
