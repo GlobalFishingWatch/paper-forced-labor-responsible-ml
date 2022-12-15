@@ -83,5 +83,5 @@ ColorbarBase(
 
 ax3.axis("off")
 
-plt.savefig("./outputs/hyper_sensitivity.png", dpi=dpi)
-plt.savefig("./outputs/hyper_sensitivity.svg", dpi=dpi)
+plt.savefig("./outputs/figures/hyper_sensitivity.png", dpi=dpi)
+plt.savefig("./outputs/figures/hyper_sensitivity.svg", dpi=dpi)

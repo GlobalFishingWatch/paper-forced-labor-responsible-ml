@@ -229,7 +229,7 @@ stats_plot <- function(param){
     ggplot2::scale_x_continuous(breaks = c(1, 3, 5))+
     ggplot2::ylab(ytext) +
     ggplot2::theme_bw()
-  ggplot2::ggsave(file = paste0("outputs/seed_sensitivity_",param,".png"))
+  ggplot2::ggsave(file = paste0("outputs/figures/seed_sensitivity_",param,".png"))
 
 }
 

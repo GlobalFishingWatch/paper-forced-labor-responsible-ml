@@ -143,4 +143,4 @@ ggplot2::ggplot(data = stats_plot, ggplot2::aes(y = mtry, x = min_n, color = mea
   ggplot2::labs(colour='AUC') +
   ggplot2::theme(strip.text.x = ggplot2::element_text(size = 50)) +
   ggplot2::theme_bw()
-# ggplot2::ggsave(filename = "./outputs/hyper_sensitivity_inferno1.jpg", width = 8, height = 8, dpi = 600)
+# ggplot2::ggsave(filename = "./outputs/figures/hyper_sensitivity_inferno1.jpg", width = 8, height = 8, dpi = 600)

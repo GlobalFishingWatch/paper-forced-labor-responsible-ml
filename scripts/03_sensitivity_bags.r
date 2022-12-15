@@ -212,5 +212,5 @@ ggplot2::ggplot(data = stats_plot, ggplot2::aes(x = bags, y = mean)) +
   ggplot2::scale_x_continuous(breaks = c(1, 5, 10, 15))+
   ggplot2::ylab(bquote(Delta~" AUC")) +
   ggplot2::theme_bw()
-ggplot2::ggsave(file = "outputs/bag_sensitivity.png")
+ggplot2::ggsave(file = "outputs/figures/bag_sensitivity.png")
 
