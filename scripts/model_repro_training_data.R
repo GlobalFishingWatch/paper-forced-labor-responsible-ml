@@ -2,7 +2,7 @@
 ## This analysis has been run on two machines. We include both sets of results for reproducibility
 ## Throughout the code, we include the results and elapsed times for both systems using tags for either "Linux" or "Mac"
 ## Here are details about two systems:
-## Linux: Rocio to fill in
+## Linux: Ubuntu 20.04.2 LTS (GNU/Linux 5.15.0-1022-gcp x86_64); n2-custom-24-196608 Intel Cascade Lake (196GB RAM, 24 computing cores)
 ## Mac: MacOS 13.0.1; R 4.2.2; 2021 MacBook Pro with M1 Max processor, 64GB RAM, 10 computing cores
 
 training_repro <- readr::read_rds(file = "./data/training_repro.rds")
@@ -89,7 +89,7 @@ bag_runs <- common_seed_tibble |>
   dplyr::mutate(counter = dplyr::row_number())
 
 ## parallelization strategy
-parallel_plan <- "multisession" # multisession if running from RStudio, or
+parallel_plan <- "multicore" # multisession if running from RStudio, or
 # multicore if from Linux, Mac and plain R, or
 # psock if multisession is not working well and you need to try something else
 if (parallel_plan == "multisession"){
@@ -140,7 +140,8 @@ train_pred_proba <- forcedlabor::ml_train_predict(fl_rec = fl_rec,
 tictoc::toc()
 
 ## Mac: 554.75 sec elapsed
-## Linux: Rocio to fill in
+## Linux: 296.906 sec elapsed
+
 
 ####### Classification with dedpul ########################################
 ## Using the predictions for each random seed, CV split, and bag,
@@ -159,7 +160,7 @@ classif_res <- forcedlabor::ml_classification(data = train_pred_proba,
 tictoc::toc()
 
 ## Mac: 638.825 sec elapsed
-## Linux: Rocio to fill in
+## Linux: 756.456 sec elapsed
 
 ########### Recall #################################################
 ## Calculate recall using the predictions
