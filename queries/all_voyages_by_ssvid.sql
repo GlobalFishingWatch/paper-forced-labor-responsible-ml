@@ -27,19 +27,29 @@ WITH
   SELECT
     *,
     (CASE
-        WHEN (NOT signature IS NULL AND ratification IS NULL AND acceptance IS NULL AND approval IS NULL AND accession IS NULL) THEN signature
+        WHEN (NOT signature IS NULL
+          AND ratification IS NULL
+          AND acceptance IS NULL
+          AND approval IS NULL
+          AND accession IS NULL) THEN signature
         WHEN (NOT ratification IS NULL
-        AND acceptance IS NULL
-        AND approval IS NULL
-        AND accession IS NULL) THEN ratification
-        WHEN (NOT acceptance IS NULL AND ratification IS NULL AND approval IS NULL AND accession IS NULL) THEN acceptance
+          AND acceptance IS NULL
+          AND approval IS NULL
+          AND accession IS NULL) THEN ratification
+        WHEN (NOT acceptance IS NULL
+          AND ratification IS NULL
+          AND approval IS NULL
+          AND accession IS NULL) THEN acceptance
         WHEN (NOT approval IS NULL
-        AND ratification IS NULL
-        AND acceptance IS NULL
-        AND accession IS NULL) THEN approval
-        WHEN (NOT accession IS NULL AND ratification IS NULL AND acceptance IS NULL AND approval IS NULL) THEN accession
+          AND ratification IS NULL
+          AND acceptance IS NULL
+          AND accession IS NULL) THEN approval
+        WHEN (NOT accession IS NULL
+          AND ratification IS NULL
+          AND acceptance IS NULL
+          AND approval IS NULL) THEN accession
         WHEN (NOT approval IS NULL
-        AND NOT accession IS NULL) THEN LEAST(approval, accession)
+          AND NOT accession IS NULL) THEN LEAST(approval, accession)
       ELSE
       NULL
     END

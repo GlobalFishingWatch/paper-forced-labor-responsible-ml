@@ -1,15 +1,5 @@
 # This file generates port analysis figures and statistics for the paper
 
-# # Load packages
-# library(bigrquery)
-# library(readr)
-# library(dplyr)
-# library(tidyr)
-# library(rworldmap)
-# library(ggplot2)
-# library(sf)
-# library(countrycode)
-# library(circlize)
 # Deal with BQ data download error
 # See for reference: https://github.com/r-dbi/bigrquery/issues/395
 options(scipen = 20)
@@ -18,7 +8,7 @@ options(scipen = 20)
 gfw_project <- "world-fishing-827"
 # Gavin is currently using the emlab-gcp project, since I'm not set up to bill to world-fishing-827
 # but you may eventually want to set up everything to bill world-fishing-827
-billing_project <- "emlab-gcp"
+billing_project <- "world-fishing-827"#"emlab-gcp"
 
 # Define directory where SQL queries live
 query_path <- "./queries/"
@@ -27,7 +17,7 @@ query_path <- "./queries/"
 all_voyages_by_ssvid_query <- readr::read_file(paste0(query_path,"all_voyages_by_ssvid.sql"))
 
 # Run this query and store on BQ
-bigrquery::bq_project_query(x = gfw_project, query = all_voyages_by_ssvid_query,
+bigrquery::bq_project_query(x = billing_project, query = all_voyages_by_ssvid_query,
                  destination_table = bigrquery::bq_table(project = gfw_project,
                                               table = "all_voyages_by_ssvid",
                                               dataset = "prj_forced_labor"),
