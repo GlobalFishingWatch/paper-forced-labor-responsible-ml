@@ -212,6 +212,6 @@ port_visits_number_by_port_map <- ggplot2::ggplot() +
 port_visits_number_by_port_map
 
 # Save map as figure for paper
-ggplot2::ggsave(here::here("figures","model_paper_port_visits_map.png"),
+ggplot2::ggsave(here::here("outputs/figures","model_paper_port_visits_map.png"),
        port_visits_number_by_port_map,
        width=7,height=3,device="png",dpi=300, bg = 'white')
