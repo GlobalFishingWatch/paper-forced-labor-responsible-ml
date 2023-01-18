@@ -3,7 +3,7 @@ output: github_document
 ---
 
 
-# forced-labor-trustability
+# paper-forced-labor-responsible-ml
 
 This repository is a companion to the manuscript "Towards a responsible machine learning approach to identify forced labor at sea", from Rocío Joo et al.
 
