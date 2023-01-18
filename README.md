@@ -1,5 +1,5 @@
 
-# forced-labor-trustability
+# forced-labor-responsible-ml
 
 This repository is a companion to the manuscript “Towards a responsible
 machine learning approach to identify forced labor at sea”, from Rocío
