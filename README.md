@@ -1,5 +1,5 @@
 
-# forced-labor-responsible-ml
+# paper-forced-labor-responsible-ml
 
 This repository is a companion to the manuscript “Towards a responsible
 machine learning approach to identify forced labor at sea”, from Rocío
@@ -12,8 +12,8 @@ For reproducibility purposes, we created a
 with all the reproducible analyses of the paper. Due to confidentiality
 agreements, the negative cases used for validation cannot be shared, so
 we modified the code to run it without them. Since there are differences
-in how Mac and Linux/Windows operating systems handle random seeds when using the `ranger`
-package, we have copied our results from both Mac and
+in how Mac and Linux/Windows handle random seeds when using the `ranger`
+package. For that reason, we have copied our results in both Mac and
 Linux for user comparison in the script. The data (with anonymized
 vessels) to run the script is
 [here](https://github.com/GlobalFishingWatch/forced-labor-trustability/tree/main/data/training_repro.csv).
