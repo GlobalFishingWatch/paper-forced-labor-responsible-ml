@@ -11,6 +11,18 @@ gfw_project <- "world-fishing-827"
 gfw_dataset <- "prj_forced_labor"
 query_path <- "./queries/"
 
+safe_table_get <- function(project = gfw_project, dataset = gfw_dataset, table, scratch = TRUE, scratch_location = "scratch_philip") {
+  dataset_name <- if (scratch) scratch_location else dataset
+  table_name <- if (scratch) paste0(dataset, '_', table) else table  
+  t <- bigrquery::bq_table(
+    project = project,
+    dataset = dataset_name,
+    table = table_name
+  )
+  return(t)
+}
+
+query_get()
 
 ###############################################################################
 # all loitering
@@ -24,9 +36,7 @@ query_path <- "./queries/"
 vessel_stats_loit_sql <- readr::read_file(paste0(query_path,"all_loitering.sql"))
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_stats_loit_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_loitering",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table = 'all_loitering'),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # Billed: 37.75 GB
@@ -43,9 +53,7 @@ bigrquery::bq_project_query(x = gfw_project, query = vessel_stats_loit_sql,
 vessel_stats_gaps_sql <- readr::read_file(paste0(query_path,"all_gaps.sql"))
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_stats_gaps_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_gaps",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table="all_gaps"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # Billed:  559.94 MB
@@ -64,9 +72,7 @@ bigrquery::bq_project_query(x = gfw_project, query = vessel_stats_gaps_sql,
 problematic_AIS_EastAsia <- readr::read_file(paste0(query_path,"problematic_AIS_EastAsia.sql"))
 
 bigrquery::bq_project_query(x = gfw_project, query = problematic_AIS_EastAsia,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "problematic_AIS_EastAsia",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table="problematic_AIS_EastAsia"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 
@@ -90,9 +96,7 @@ iuu_sql <- readr::read_file(paste0(query_path,"all_iuu.sql"))
 
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = iuu_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_iuu",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table = "labor_all_iuu"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 
@@ -115,9 +119,7 @@ vessel_info_tidy_sql <- readr::read_file(paste0(query_path,"vessel_info_all_tidy
 
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_info_tidy_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "vessel_info_all_tidy",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table="vessel_info_all_tidy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # BQ's legacy SQL format id not an updated format
@@ -140,9 +142,7 @@ vessel_info_messy_sql <- readr::read_file(paste0(query_path,"vessel_info_all_mes
 
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_info_messy_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "vessel_info_all_messy",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table="vessel_info_all_messy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # Billed: 681.57 MB
@@ -162,9 +162,7 @@ vessel_info_positions_tidy_sql <- readr::read_file(paste0(query_path,
                                                    "all_vessel_positions_tidy.sql"))
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_info_positions_tidy_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_vessel_positions_tidy",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table = "all_vessel_positions_tidy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # With "2020-12-31" it should be 915.06 GB # 2m
@@ -182,9 +180,7 @@ vessel_info_positions_messy_sql <- readr::read_file(paste0(query_path,
                                                    "all_vessel_positions_messy.sql"))
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_info_positions_messy_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_vessel_positions_messy",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table="all_vessel_positions_messy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # With "2020-12-31" it should be 915.06 GB # 2m
@@ -209,15 +205,13 @@ vessel_info_all_table <- "prj_forced_labor.vessel_info_all_tidy"
 all_vessel_positions_table <- "prj_forced_labor.all_vessel_positions_tidy"
 
 vessel_stats_fishing_sql <- glue::glue(
-  read_file(paste0(query_path,"all_fishing_param.sql"))
+ readr::read_file(paste0(query_path,"all_fishing_param.sql"))
 )
 
 
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_stats_fishing_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_fishing_tidy",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table = "prj_forced_labor_all_fishing_tidy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # Billed: 260.86 GB
@@ -233,14 +227,12 @@ vessel_info_all_table <- "prj_forced_labor.vessel_info_all_messy"
 all_vessel_positions_table <- "prj_forced_labor.all_vessel_positions_messy"
 
 vessel_stats_fishing_sql <- glue::glue(
-  read_file(paste0(query_path,"all_fishing_param.sql"))
+ readr::read_file(paste0(query_path,"all_fishing_param.sql"))
 )
 
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_stats_fishing_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_fishing_messy",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table="prj_forced_labor_all_fishing_messy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # Billed: 296.85 GB-- for the complete one
@@ -263,14 +255,12 @@ bigrquery::bq_project_query(x = gfw_project, query = vessel_stats_fishing_sql,
 vessel_info_all_table <- "prj_forced_labor.vessel_info_all_tidy"
 
 vessel_stats_ports_sql <- glue::glue(
-  read_file(paste0(query_path,"all_port_visits_param.sql"))
+ readr::read_file(paste0(query_path,"all_port_visits_param.sql"))
 )
 
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_stats_ports_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_port_visits_tidy",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table = "prj_forced_labor_all_port_visits_tidy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # Billed: 5.57 GB
@@ -280,15 +270,13 @@ bigrquery::bq_project_query(x = gfw_project, query = vessel_stats_ports_sql,
 vessel_info_all_table <- "prj_forced_labor.vessel_info_all_messy"
 
 vessel_stats_ports_sql <- glue::glue(
-  read_file(paste0(query_path,"all_port_visits_param.sql"))
+ readr::read_file(paste0(query_path,"all_port_visits_param.sql"))
 )
 
 
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_stats_ports_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_port_visits_messy",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table = "prj_forced_labor_all_port_visits_messy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # Billed: 5.58 GB
@@ -309,9 +297,7 @@ bigrquery::bq_project_query(x = gfw_project, query = vessel_stats_ports_sql,
 vessel_info_forced_labor_1_sql <- readr::read_file(paste0(query_path,"vessel_info_forced_labor_1.sql"))
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_info_forced_labor_1_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "vessel_info_forced_labor_1",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table = "prj_forced_labor_vessel_info_forced_labor_1"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # Billed: 95.42 MB
@@ -320,9 +306,7 @@ bigrquery::bq_project_query(x = gfw_project, query = vessel_info_forced_labor_1_
 vessel_info_forced_labor_2_sql <- readr::read_file(paste0(query_path,"vessel_info_forced_labor_2.sql"))
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = vessel_info_forced_labor_2_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "vessel_info_forced_labor_2",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table = "prj_forced_labor_vessel_info_forced_labor_2"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # Billed: 96.47 MB
@@ -342,9 +326,7 @@ bigrquery::bq_project_query(x = gfw_project, query = vessel_info_forced_labor_2_
 all_encounters_sql <- readr::read_file(paste0(query_path,"all_encounters.sql"))
 # Run new query. Delete old table, upload new one
 bigrquery::bq_project_query(x = gfw_project, query = all_encounters_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_encounters",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table = "prj_forced_labor_all_encounters"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # Billed: 1.39 GB
@@ -370,9 +352,7 @@ bigrquery::bq_project_query(x = gfw_project, query = all_encounters_sql,
 all_fl_ais_sql <- readr::read_file(paste0(query_path,"all_fl_ais.sql"))
 
 bigrquery::bq_project_query(x = gfw_project, query = all_fl_ais_sql,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_fl_ais",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table = "prj_forced_labor_all_fl_ais"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 # Billed: 306.18 MB
@@ -398,9 +378,7 @@ bigrquery::bq_project_query(x = gfw_project, query = all_fl_ais_sql,
 all_together_tidy <- readr::read_file(paste0(query_path,"all_together_tidy.sql"))
 
 bigrquery::bq_project_query(x = gfw_project, query = all_together_tidy,
-                 destination_table = bigrquery::bq_table(project = gfw_project,
-                                              table = "all_together_tidy",
-                                              dataset = gfw_dataset),
+                 destination_table = safe_table_get(table = "prj_forced_labor_all_together_tidy"),
                  use_legacy_sql = FALSE, allowLargeResults = TRUE,
                  write_disposition = "WRITE_TRUNCATE")
 

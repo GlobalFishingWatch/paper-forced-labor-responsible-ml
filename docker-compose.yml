@@ -1,0 +1,67 @@
+services:
+  production:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+      target: production
+    volumes:
+      - ${HOME}/.config/gcloud:/home/rstudio/.config/gcloud
+
+  dev:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+      target: development
+      ssh:
+        default: ${HOME}/.ssh/id_ed25519
+    environment:
+      DISABLE_AUTH: "true"
+      ROOT: "true"
+      USERID: "${UID}"
+      GROUPID: "${GID}"
+      GITHUB_PAT: "${GITHUB_PAT}"
+    platform: linux/amd64
+    tty: true
+    stdin_open: true
+    ports:
+      - "8787:8787"
+    volumes:
+      - ${CWD}:/home/rstudio/src
+      - ${HOME}/.config/gcloud:/home/rstudio/.config/gcloud
+      - ${HOME}/.ssh:/home/rstudio/.ssh
+      - ${HOME}/.gitconfig:/home/rstudio/.gitconfig"
+    working_dir: /src
+    restart: unless-stopped
+    healthcheck:
+      test: curl -f http://127.0.0.1:8787/ || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  test:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.test
+      target: test
+    environment:
+      DISABLE_AUTH: "true"
+      ROOT: "true"
+      USERID: "${UID}"
+      GROUPID: "${GID}"
+    platform: linux/amd64
+    tty: true
+    stdin_open: true
+    ports:
+      - "8787:8787"
+    volumes:
+      - ${CWD}:/home/rstudio/src
+      - ${HOME}/.config/gcloud:/home/rstudio/.config/gcloud
+    working_dir: /src
+    restart: unless-stopped
+    healthcheck:
+      test: curl -f http://127.0.0.1:8787/ || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
