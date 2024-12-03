@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 cat <<EOF > .env
 UID=$(id -u)
 GID=$(id -g)

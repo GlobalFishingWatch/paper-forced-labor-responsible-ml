@@ -31,7 +31,7 @@ services:
       - ${CWD}:/home/rstudio/src
       - ${HOME}/.config/gcloud:/home/rstudio/.config/gcloud
       - ${HOME}/.ssh:/home/rstudio/.ssh
-      - ${HOME}/.gitconfig:/home/rstudio/.gitconfig"
+      - ${HOME}/.gitconfig:/home/rstudio/.gitconfig
     working_dir: /src
     restart: unless-stopped
     healthcheck:

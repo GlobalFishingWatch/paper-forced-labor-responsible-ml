@@ -2053,10 +2053,9 @@
     },
     "precommit": {
       "Package": "precommit",
-      "Version": "0.4.3.9003",
-      "Source": "Local",
-      "RemoteType": "local",
-      "RemoteUrl": "/home/rstudio/.cache/pre-commit/repoy3tgchd5",
+      "Version": "0.4.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
       "Requirements": [
         "R.cache",
         "cli",
@@ -2069,7 +2068,7 @@
         "withr",
         "yaml"
       ],
-      "Hash": "a85c72055a7a9d164d43a1eaeec379a7"
+      "Hash": "3b9c9c622ecd61e92199e523652f36e4"
     },
     "prettyunits": {
       "Package": "prettyunits",
