@@ -5,6 +5,30 @@ safe_table_get:
   scratch_location: scratch_philip
   query_directory: ../queries
   tables:
+    - name: iuu_ucsb
+      dataset: prj_forced_labor
+      scratch: false
+    - name: all_iuu
+      dataset: prj_forced_labor
+      scratch: false
+    - name: vi_ssvid_v20220101
+      dataset: gfw_research
+      scratch: false
+    - name: eez_info
+      dataset: gfw_research
+      scratch: false
+    - name: flags_of_convenience_v20211013
+      dataset: gfw_research
+      scratch: false
+    - name: fishing_vessels_ssvid_v20220801
+      dataset: gfw_research
+      scratch: false
+    - name: vi_ssvid_byyear_v20220801
+      dataset: gfw_research
+      scratch: false
+    - name: all_vessels_v20220801
+      dataset: vessel_database
+      scratch: false
     - name: loitering
       dataset: pipe_production_v20201001
       scratch: false
@@ -14,49 +38,6 @@ safe_table_get:
     - name: proto_published_events_ais_gaps
       dataset: pipe_production_v20201001
       scratch: false
-    - name: vi_ssvid_v20220101
-      dataset: gfw_research
-      scratch: false
-    - name: eez_info
-      dataset: gfw_research
-      scratch: false
-    - name: all_vessels_v20220801
-      dataset: vessel_database
-      scratch: false
-    - name: iuu_ucsb
-      dataset: prj_forced_labor
-      scratch: false
-    - name: flags_of_convenience_v20211013
-      dataset: gfw_research
-      scratch: false
-    - name: all_iuu
-      dataset: prj_forced_labor
-      scratch: false
-    - name: fishing_vessels_ssvid_v20220801
-      dataset: gfw_research
-      scratch: false
-    - name: vi_ssvid_byyear_v20220801
-      dataset: gfw_research
-      scratch: false
     - name: research_messages
       dataset: pipe_production_v20201001
       scratch: false
-    - name: eez_info
-      dataset: gfw_research
-      scratch: false
-    - name: all_loitering
-    - name: all_gaps
-    - name: problematic_AIS_EastAsia
-    - name: labor_all_iuu
-    - name: vessel_info_all_tidy
-    - name: vessel_info_all_messy
-    - name: all_vessel_positions_tidy
-    - name: all_vessel_positions_messy
-    - name: all_fishing_tidy
-    - name: all_fishing_messy
-    - name: all_port_visits_tidy
-    - name: vessel_info_forced_labor_1
-    - name: vessel_info_forced_labor_2
-    - name: all_encounters
-    - name: all_fl_ais
-    - name: all_together_tidy
