@@ -1423,6 +1423,20 @@
       ],
       "Hash": "8954069286b4b2b0d023d1b288dce978"
     },
+    "jinjar": {
+      "Package": "jinjar",
+      "Version": "0.3.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "cli",
+        "cpp11",
+        "fs",
+        "jsonlite",
+        "rlang"
+      ],
+      "Hash": "e4c5389e9948dab062341d98706089bb"
+    },
     "jpeg": {
       "Package": "jpeg",
       "Version": "0.1-10",
