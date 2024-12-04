@@ -1,1 +1,24 @@
-FROM rocker/tidyverse:4.4.2 as test
+FROM rocker/tidyverse:4.4.2 AS test
+ENV DEBIAN_FRONTEND=noninteractive
+
+
+RUN apt-get update -y
+RUN apt-get install -y apt-utils software-properties-common gpg curl apt-utils
+RUN curl -sS https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor | tee /etc/apt/trusted.gpg.d/cloud-sdk-bullseye.gpg
+RUN apt-get update && apt-get install -y \
+    libssl-dev libcurl4-openssl-dev \
+    openssh-client \
+    libxml2-dev \
+    libfontconfig1-dev \
+    libharfbuzz-dev \
+    libfribidi-dev libfreetype6-dev \
+    libpng-dev libtiff5-dev libjpeg-dev \
+    libgdal-dev libgeos-dev libproj-dev \
+    libudunits2-dev \
+    iputils-ping \
+    gcc g++ \
+    git
+
+# RUN --mount=type=ssh git clone git@github.com:GlobalFishingWatch/sar-processor.git sar-processor
+RUN ssh-keyscan github.com >>  /etc/ssh/ssh_known_hosts
+RUN --mount=type=ssh ssh -T git@github.com

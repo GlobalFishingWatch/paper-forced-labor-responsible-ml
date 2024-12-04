@@ -14,8 +14,6 @@ services:
       context: .
       dockerfile: docker/Dockerfile.dev
       target: development
-      ssh:
-        default: ${HOME}/.ssh/id_ed25519
     environment:
       DISABLE_AUTH: "true"
       ROOT: "true"
@@ -55,9 +53,7 @@ services:
     stdin_open: true
     ports:
       - "8787:8787"
-    volumes:
-      - ${CWD}:/home/rstudio/src
-      - ${HOME}/.config/gcloud:/home/rstudio/.config/gcloud
+    volumes: []
     working_dir: /src
     restart: unless-stopped
     healthcheck:

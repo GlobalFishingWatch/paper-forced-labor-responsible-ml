@@ -1,4 +1,4 @@
-FROM rocker/tidyverse:4.4.2 as devbase
+FROM rocker/tidyverse:4.4.2 AS devbase
 ENV DEBIAN_FRONTEND=noninteractive
 
 
@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
     gcc g++ \
     git
 
-FROM devbase as devdeps
+FROM devbase AS devdeps
 
 RUN apt-get install -y sudo
 RUN apt-get install -y sl tree
@@ -27,12 +27,14 @@ RUN apt-get update && \
     apt-get install -y python3 python3-pip
 
 RUN echo 'export PATH="$HOME/.local/bin:/usr/games:/usr/local/games:$PATH"' >> /etc/profile
+RUN echo file-monitor-include-hidden=true >> /etc/rstudio/rserver.conf
 
 FROM devdeps AS userdeps
-USER rstudio
 
-RUN mkdir -p /home/rstudio/.ssh && chmod 700 /home/rstudio/.ssh
-RUN ssh-keyscan github.com >> /home/rstudio/.ssh/known_hosts
+RUN ssh-keyscan github.com >> /etc/ssh/ssh_known_hosts
+RUN --mount=type=ssh ssh -T git@github.com 2>&1 | grep "successfully authenticated"
+
+USER rstudio
 
 ENV RENV_PATHS_LIBRARY=/home/rstudio/library
 RUN mkdir -p /home/rstudio/src/
@@ -44,6 +46,13 @@ RUN install2.r --repos 'http://cran.rstudio.com/' renv
 
 RUN python3 -m pip install --upgrade --break-system-packages pip
 RUN python3 -m pip install --break-system-packages pre-commit
+
+
+# USER root
+# # RUN ping -c 3 github.com
+# COPY ./renv.lock .
+# COPY ./renv .
+# RUN --mount=type=ssh Rscript -e "renv::restore()"
 
 # RUN ping -c 3 github.com
 # RUN --mount=type=ssh ssh -T git@github.com
